@@ -1,0 +1,7 @@
+pandas
+numpy
+Flask
+flask_debug
+pybit
+datetime
+matplotlib
