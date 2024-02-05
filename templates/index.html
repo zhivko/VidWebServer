@@ -8,7 +8,7 @@
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <div id="plot_div" style="width: 80%; height: 100%; float: left;"></div>
-<div id="text_div" style="width: 20%; height: 100%; float: right;">tole je tekst</div>
+<div id="text_div" style="width: 20%; height: 100%; float: right;"></div>
 
 <script type="text/javascript">
 
@@ -47,8 +47,30 @@ var data = [trace1];
 
 Plotly.newPlot("plot_div", data, layout, {modeBarButtonsToAdd: ["drawline"]});
 var myplot= document.getElementById("plot_div");
-layout.on('plotly_click', function(){
-    alert('You clicked this Plotly chart!');
+var text_div= document.getElementById("text_div");
+myplot.on('plotly_relayout', (event) => {
+    if ('shapes' in event) {
+        if (event["shapes"].length > 0) {
+            console.log(event["shapes"].slice(-1));
+            if(event["shapes"].slice(-1)[0].type=='line'){
+					var esp=document.createElement("span");
+					text_div.appendChild(esp);
+					
+					var x0 = event["shapes"].slice(-1)[0].x0;
+					var x1 = event["shapes"].slice(-1)[0].x1;
+					var y0 = event["shapes"].slice(-1)[0].y0;
+					var y1 = event["shapes"].slice(-1)[0].y1;
+					
+					esp.innerHTML="x0:"+x0+" y0:"+y0+" x1:"+x1+" y1:"+y1;
+					
+					var esp=document.createElement("br");
+					text_div.appendChild(esp);					
+					
+					//tole zbrise vse crte
+					//Plotly.relayout(myplot, { shapes: [] });
+           	}
+        }
+    }
 });
 
 </script>
