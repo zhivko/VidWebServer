@@ -46,6 +46,7 @@ var layout = {
 var data = [trace1];
 
 Plotly.newPlot("plot_div", data, layout, {modeBarButtonsToAdd: ["drawline"]});
+var myplot= document.getElementById("plot_div");
 layout.on('plotly_click', function(){
     alert('You clicked this Plotly chart!');
 });
