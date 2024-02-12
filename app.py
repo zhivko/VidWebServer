@@ -2,14 +2,34 @@
 #pip install -r requirements.txt
 #flask run
 #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
-from flask import Flask, render_template, render_template_string
+from flask import Flask, render_template, render_template_string, request
 from flask_debug import Debug
+import os.path
+import traceback
+import sys
+from Crta import Crta
 
 from pybit.unified_trading import HTTP
 import pandas as pd
 import datetime as dt
 import time 
 import json
+import jsonpickle
+
+
+jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
+
+#crte = Crta[]
+crtePath = "crte.data"
+crte = []
+print (os.path.abspath("crte.data"))
+if os.path.isfile(crtePath):
+    with open(crtePath, 'r') as f:
+        json_str = f.read()
+        crte = jsonpickle.decode(json_str)
+
+
+
 
 
 def format_data(response):
@@ -120,9 +140,36 @@ def get_plot_data():
     #x = df['time'].apply(lambda x: int(x)).tolist()
     x = df['timestamp'].index.astype("str").tolist()
     y = df['close'].astype(float).tolist()
-    return {'x_axis': x, 'y_axis': y, 'title': mysymbol}
+    volume = df['volume'].astype(int).tolist()
+    return {'x_axis': x, 'y_axis': y, 'volume': volume,'title': mysymbol}
 
 app = Flask(__name__)
+
+
+@app.route('/addLine', methods=['POST'])
+def addLine():
+    contentJson = request.json
+    print(contentJson['x0'])
+    print(contentJson['y0'])
+    print(contentJson['x1'])
+    print(contentJson['y1'])
+    crta1=Crta(contentJson['x0'],contentJson['y0'],contentJson['x1'],contentJson['y1'])
+    
+    crte.append(crta1)
+    try:
+        with open(crtePath,'w') as f:
+            strJson = jsonpickle.encode(crte, unpicklable=False, indent=2)
+            f.write(strJson)
+             
+    except:
+        if os.path.isfile(crtePath):        
+            os.remove(crtePath)
+        exc = sys.exc_info()
+        print(traceback.format_exc())
+        # or
+        print(sys.exc_info()[2])      
+        
+    return "ok", 200
 
 @app.route('/')
 def home():

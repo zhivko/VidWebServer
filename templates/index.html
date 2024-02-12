@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Flask Tutorial</title>
+<title>Crypto chart by V&K</title>
 </head>
 <body>
 <h1>This is the Index page</h1>
@@ -14,10 +14,23 @@
 
 {% autoescape false %}
 var trace1 = {
-    x: {{ plot_data.x_axis }} ,
-    y: {{ plot_data.y_axis }} ,
-    type: 'scatter',
-    name: '{{ plot_data.title }}'
+	    type: 'scatter',
+	    x: {{ plot_data.x_axis }} ,
+	    y: {{ plot_data.y_axis }} ,
+	    name: '{{ plot_data.title }}',
+        showlegend: false
+	    
+};
+var traceVolume= {
+        type:"bar",
+        x: {{ plot_data.x_axis }},
+        y: {{ plot_data.volume }},
+        marker: { color: 'blue'},
+        yaxis:"y2",
+	    name: 'Volume',
+        line:{width:2},
+        showlegend: false
+        
 };
 {% endautoescape %}
 
@@ -29,11 +42,24 @@ var layout = {
             color: '#7f7f7f'
         },
     showlegend: true,
+    autoscale: true,
+    
     xaxis: {
-        title: 'Time',
+        title: 'Time'
     },
     yaxis: {
+    	autorange: true,
         title: 'USD$',
+        type: 'linear'
+    },
+    yaxis2: {
+    	visible: false,
+    	showgrid: false,
+        title: 'USD$',
+        type: 'linear',
+        overlaying: 'y',
+        range: [0, (Math.max(...traceVolume.y)*5)],
+        side: 'right'
     },
     margin: {
         l: 70,
@@ -43,7 +69,8 @@ var layout = {
         pad: 4
     }
 };
-var data = [trace1];
+var data = [trace1, traceVolume];
+
 
 Plotly.newPlot("plot_div", data, layout, {modeBarButtonsToAdd: ["drawline"]});
 var myplot= document.getElementById("plot_div");
@@ -61,10 +88,21 @@ myplot.on('plotly_relayout', (event) => {
 					var y0 = event["shapes"].slice(-1)[0].y0;
 					var y1 = event["shapes"].slice(-1)[0].y1;
 					
-					esp.innerHTML="x0:"+x0+" y0:"+y0+" x1:"+x1+" y1:"+y1;
+					text_div.innerHTML += "x0:"+x0+" y0:"+y0+" x1:"+x1+" y1:"+y1 + "\n";
 					
-					var esp=document.createElement("br");
-					text_div.appendChild(esp);					
+					var http = new XMLHttpRequest();
+					var url = "/addLine";
+					
+					const crta = {x0: x0, y0: y0, x1: x1, y1:y1};
+					http.open("POST", url, true);
+					http.setRequestHeader("Content-type", "application/json; charset=utf-8");
+
+					http.onreadystatechange = function() {
+					    if(http.readyState == 4 && http.status == 200) {
+							text_div.innerHTML += "poslal crto na python server\n";
+					    }
+					}
+					http.send(JSON.stringify(crta));
 					
 					//tole zbrise vse crte
 					//Plotly.relayout(myplot, { shapes: [] });
