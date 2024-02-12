@@ -15,13 +15,14 @@ import datetime as dt
 import time 
 import json
 import jsonpickle
+from typing import List
 
 
 jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
 
 #crte = Crta[]
 crtePath = "crte.data"
-crte = []
+crte: List[Crta] = []
 print (os.path.abspath("crte.data"))
 if os.path.isfile(crtePath):
     with open(crtePath, 'r') as f:
@@ -141,7 +142,10 @@ def get_plot_data():
     x = df['timestamp'].index.astype("str").tolist()
     y = df['close'].astype(float).tolist()
     volume = df['volume'].astype(int).tolist()
-    return {'x_axis': x, 'y_axis': y, 'volume': volume,'title': mysymbol}
+    lines = [];
+    for crta in crte:
+        lines.append(crta.plotlyLine());
+    return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol}
 
 app = Flask(__name__)
 
@@ -149,16 +153,14 @@ app = Flask(__name__)
 @app.route('/addLine', methods=['POST'])
 def addLine():
     contentJson = request.json
-    print(contentJson['x0'])
-    print(contentJson['y0'])
-    print(contentJson['x1'])
-    print(contentJson['y1'])
+    print(contentJson)
+
     crta1=Crta(contentJson['x0'],contentJson['y0'],contentJson['x1'],contentJson['y1'])
-    
     crte.append(crta1)
+    
     try:
         with open(crtePath,'w') as f:
-            strJson = jsonpickle.encode(crte, unpicklable=False, indent=2)
+            strJson = jsonpickle.encode(crte, indent=2)
             f.write(strJson)
              
     except:

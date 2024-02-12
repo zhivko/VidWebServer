@@ -32,9 +32,10 @@ var traceVolume= {
         showlegend: false
         
 };
-{% endautoescape %}
 
 var layout = {
+	shapes: {{ plot_data.lines }},
+{% endautoescape %}
     title: "Crypto Chart by Vid&Klemen",
     titlefont: {
             family: 'Poppins',
@@ -102,7 +103,7 @@ myplot.on('plotly_relayout', (event) => {
 							text_div.innerHTML += "poslal crto na python server\n";
 					    }
 					}
-					http.send(JSON.stringify(crta));
+					http.send(JSON.stringify(event["shapes"].slice(-1)[0]));
 					
 					//tole zbrise vse crte
 					//Plotly.relayout(myplot, { shapes: [] });
