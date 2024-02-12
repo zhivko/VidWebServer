@@ -32,10 +32,11 @@ var traceVolume= {
         showlegend: false
         
 };
+var shapes = {{ plot_data.lines }}
+{% endautoescape %}
 
 var layout = {
-	shapes: {{ plot_data.lines }},
-{% endautoescape %}
+	shapes: shapes,
     title: "Crypto Chart by Vid&Klemen",
     titlefont: {
             family: 'Poppins',

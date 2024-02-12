@@ -146,7 +146,7 @@ def get_plot_data():
     for crta in crte:
         lines.append(crta.plotlyLine());
     return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol}
-
+    
 app = Flask(__name__)
 
 
