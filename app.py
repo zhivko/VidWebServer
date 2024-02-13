@@ -17,6 +17,9 @@ import json
 import jsonpickle
 from typing import List
 
+global lineCounter
+
+lineCounter=0
 
 jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
 
@@ -178,7 +181,6 @@ def home():
     plot_data1 = get_plot_data()
     return render_template('./index.html', plot_data=plot_data1)
     #return render_template_string(template,plot_data=plot_data1)
-
 
 
 

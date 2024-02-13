@@ -72,9 +72,21 @@ var layout = {
     }
 };
 var data = [trace1, traceVolume];
+var config = {
+		  toImageButtonOptions: {
+		    format: 'svg', // one of png, svg, jpeg, webp
+		    filename: 'custom_image',
+		    height: 500,
+		    width: 700,
+		    scale: 1, // Multiply title/legend/axis/canvas sizes by this factor
+		    
+		  },
+		  editable: true,
+		  modeBarButtonsToAdd: ["drawline"]
+		  };
 
 
-Plotly.newPlot("plot_div", data, layout, {modeBarButtonsToAdd: ["drawline"]});
+Plotly.newPlot("plot_div", data, layout, config);
 var myplot= document.getElementById("plot_div");
 var text_div= document.getElementById("text_div");
 myplot.on('plotly_relayout', (event) => {
@@ -109,6 +121,10 @@ myplot.on('plotly_relayout', (event) => {
 					//tole zbrise vse crte
 					//Plotly.relayout(myplot, { shapes: [] });
            	}
+            else
+            {
+            	window.alert("type: " + event["shapes"].slice(-1)[0].type);
+            }
         }
     }
 });
