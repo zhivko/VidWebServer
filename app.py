@@ -8,6 +8,7 @@ import os.path
 import traceback
 import sys
 from Crta import Crta
+import re
 
 from pybit.unified_trading import HTTP
 import pandas as pd
@@ -134,7 +135,10 @@ df = df[::-1].apply(pd.to_numeric)
 
 print(df)
 
-
+def getCrtaWithIndex(index, crte: List[Crta]):
+    for crta in crte:
+        if crta.i==index:
+            return crta
 
 
 def get_plot_data():
@@ -158,22 +162,48 @@ def addLine():
     contentJson = request.json
     print(contentJson)
 
-    crta1=Crta(contentJson['x0'],contentJson['y0'],contentJson['x1'],contentJson['y1'])
-    crte.append(crta1)
+    needsWrite=False
     
-    try:
-        with open(crtePath,'w') as f:
-            strJson = jsonpickle.encode(crte, indent=2)
-            f.write(strJson)
-             
-    except:
-        if os.path.isfile(crtePath):        
-            os.remove(crtePath)
-        exc = sys.exc_info()
-        print(traceback.format_exc())
-        # or
-        print(sys.exc_info()[2])      
-        
+    if 'type' in contentJson.keys() and contentJson['type']=='line':
+        crta1=Crta(len(crte), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
+        crte.append(crta1)
+        needsWrite=True
+    elif list(contentJson.keys())[0].startswith("shapes"):
+        x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
+        strI = x.group(1)
+        intI=int(strI)
+        crta = getCrtaWithIndex(intI, crte)
+        if not crta is None:
+            if 'shapes['+strI+'].x0' in list(contentJson.keys()):
+                crta.x0 = contentJson['shapes['+strI+'].x0']
+            if 'shapes['+strI+'].y0' in list(contentJson.keys()):
+                crta.y0 = contentJson['shapes['+strI+'].y0']
+            if 'shapes['+strI+'].x1' in list(contentJson.keys()):
+                crta.x1 = contentJson['shapes['+strI+'].x1']
+            if 'shapes['+strI+'].y1' in list(contentJson.keys()):
+                crta.y1 = contentJson['shapes['+strI+'].y1']
+            needsWrite=True
+        else:
+            print("Did not find crta: " + intI)
+    else:
+        print(contentJson)
+
+
+    if needsWrite:
+        try:
+            with open(crtePath,'w') as f:
+                strJson = jsonpickle.encode(crte, indent=2)
+                f.write(strJson)
+                 
+        except:
+            if os.path.isfile(crtePath):        
+                os.remove(crtePath)
+            exc = sys.exc_info()
+            print(traceback.format_exc())
+            # or
+            print(sys.exc_info()[2])           
+
+    
     return "ok", 200
 
 @app.route('/')

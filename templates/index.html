@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Crypto chart by V&K</title>
+<title>Crypto charts by V&K</title>
 </head>
 <body>
 <h1>This is the Index page</h1>
@@ -90,6 +90,18 @@ Plotly.newPlot("plot_div", data, layout, config);
 var myplot= document.getElementById("plot_div");
 var text_div= document.getElementById("text_div");
 myplot.on('plotly_relayout', (event) => {
+	console.log(event);
+	var http = new XMLHttpRequest();
+	var url = "/addLine";
+	http.open("POST", url, true);
+	http.setRequestHeader("Content-type", "application/json; charset=utf-8");
+
+	http.onreadystatechange = function() {
+	    if(http.readyState == 4 && http.status == 200) {
+			text_div.innerHTML += "poslal crto na python server\n";
+	    }
+	}
+	
     if ('shapes' in event) {
         if (event["shapes"].length > 0) {
             console.log(event["shapes"].slice(-1));
@@ -104,18 +116,8 @@ myplot.on('plotly_relayout', (event) => {
 					
 					text_div.innerHTML += "x0:"+x0+" y0:"+y0+" x1:"+x1+" y1:"+y1 + "\n";
 					
-					var http = new XMLHttpRequest();
-					var url = "/addLine";
 					
 					const crta = {x0: x0, y0: y0, x1: x1, y1:y1};
-					http.open("POST", url, true);
-					http.setRequestHeader("Content-type", "application/json; charset=utf-8");
-
-					http.onreadystatechange = function() {
-					    if(http.readyState == 4 && http.status == 200) {
-							text_div.innerHTML += "poslal crto na python server\n";
-					    }
-					}
 					http.send(JSON.stringify(event["shapes"].slice(-1)[0]));
 					
 					//tole zbrise vse crte
@@ -126,6 +128,10 @@ myplot.on('plotly_relayout', (event) => {
             	window.alert("type: " + event["shapes"].slice(-1)[0].type);
             }
         }
+    }
+    else
+    {
+    	http.send(JSON.stringify(event));
     }
 });
 
