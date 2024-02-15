@@ -96,35 +96,42 @@ mysymbol = "BTCUSDT"
 def get_last_timestamp(df):
     return int(df.timestamp[-1:].values[0])
 
-start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
+dataPath = mysymbol + '.data'
+if not os.path.isfile(dataPath):
+    start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
+    interval = 60
+    df = pd.DataFrame()
+    
+    while True:
+        response = session.get_kline(category='linear', 
+                                     symbol=mysymbol, 
+                                     start=start,
+                                     interval=interval).get('result')
+        
+        latest = format_data(response)
+        
+        if not isinstance(latest, pd.DataFrame):
+            break
+        
+        start = get_last_timestamp(latest)
+        
+        time.sleep(0.1)
+        
+        df = pd.concat([df, latest])
+        print(f'Collecting data starting {dt.datetime.fromtimestamp(start/1000)}')
+        if len(latest) == 1: break
+    
+    
+    df.drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
+    df.to_csv(dataPath)
 
-interval = 60
-df = pd.DataFrame()
+else:
+    df=pd.read_csv(dataPath)
+    df.index = df.timestamp
+    df = df.drop(['timestamp'], axis=1)
+    df = df.rename(columns={"timestamp.1": "timestamp"})
 
-while True:
-    response = session.get_kline(category='linear', 
-                                 symbol=mysymbol, 
-                                 start=start,
-                                 interval=interval).get('result')
-    
-    latest = format_data(response)
-    
-    if not isinstance(latest, pd.DataFrame):
-        break
-    
-    start = get_last_timestamp(latest)
-    
-    time.sleep(0.1)
-    
-    df = pd.concat([df, latest])
-    print(f'Collecting data starting {dt.datetime.fromtimestamp(start/1000)}')
-    if len(latest) == 1: break
-
-
-df.drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
-f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-df.index = df.timestamp.apply(f)
-df = df[::-1].apply(pd.to_numeric)
+print(df)
 
 
 
@@ -134,6 +141,9 @@ df = df[::-1].apply(pd.to_numeric)
 #df = format_data(response)
 
 print(df)
+
+
+
 
 def getCrtaWithIndex(index, crte: List[Crta]):
     for crta in crte:
@@ -146,7 +156,8 @@ def get_plot_data():
     #f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
     #df['time'] = df['timestamp'].apply(f)
     #x = df['time'].apply(lambda x: int(x)).tolist()
-    x = df['timestamp'].index.astype("str").tolist()
+    #x = df['timestamp'].index.astype("str").tolist()
+    x = df.index.astype("str").tolist()
     y = df['close'].astype(float).tolist()
     volume = df['volume'].astype(int).tolist()
     lines = [];

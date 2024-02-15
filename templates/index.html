@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Crypto charts by V&K</title>
+<title>Crypto chart for: {{ plot_data.title }} V&K</title>
 </head>
 <body>
 <h1>This is the Index page</h1>
@@ -37,7 +37,7 @@ var shapes = {{ plot_data.lines }}
 
 var layout = {
 	shapes: shapes,
-    title: "Crypto Chart by Vid&Klemen",
+    title: "{{ plot_data.title }}",
     titlefont: {
             family: 'Poppins',
             size: 18,
