@@ -6,3 +6,4 @@ pybit
 datetime
 matplotlib
 jsonpickle
+pyopenssl

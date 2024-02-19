@@ -11,12 +11,18 @@ from Crta import Crta
 import re
 
 from pybit.unified_trading import HTTP
+from pybit.unified_trading import WebSocket
+
 import pandas as pd
 import datetime as dt
 import time 
 import json
 import jsonpickle
 from typing import List
+import pybit
+
+from datetime import datetime, timezone, tzinfo
+import pytz
 
 global lineCounter
 
@@ -74,13 +80,13 @@ def format_data(response):
 
 
 
-with open("c:/work/klemen/authcreds.json") as j:
+with open("./authcreds.json") as j:
     creds = json.load(j)
 
-key = creds['key']
-secret = creds['secret']
+kljuc = creds['kljuc']
+geslo = creds['geslo']
   
-session = HTTP(api_key=key, api_secret=secret, testnet=False)
+session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
 
 
 result = session.get_tickers(category="linear").get('result')['list']
@@ -139,8 +145,58 @@ print(df)
 #                             symbol=mysymbol, 
 #                             interval='D').get('result')
 #df = format_data(response)
+# https://bybit-exchange.github.io/docs/v5/websocket/public/kline
+ws = WebSocket(
+    testnet=True,
+    channel_type="linear",
+    api_key=kljuc,
+    api_secret=geslo,
+    trace_logging=False,
+)
 
-print(df)
+def handle_message(messageDict):
+    global df
+    data = messageDict["data"][0]
+    if data['confirm'] == True:
+        print(df)
+        try:
+            x = messageDict['data'][0]['timestamp']
+            timestamp = dt.datetime.utcfromtimestamp(int(x)/1000)
+            df2 = pd.DataFrame({'timestamp': data['timestamp'],\
+                                'open': data['open'],\
+                                'high': data['high'],\
+                                'low': data['low'],\
+                                'close': data['close'],\
+                                'volume': data['volume'],\
+                                'turnover': data['turnover']},\
+                                index=[0])
+            #df = pd.concat([df,df2],axis=1)
+            f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+            df2.index = df2.timestamp.apply(f)
+            df = pd.concat([df, df2])
+            dt_now = datetime.now(pytz.timezone('Europe/Ljubljana')) 
+            
+            print(dt_now, " appended data " + timestamp.strftime('%Y-%m-%d %H:%M:%S'))
+            df.to_csv(dataPath)
+        
+        
+        except:
+            print(traceback.format_exc())
+
+
+
+# interval
+# 1 3 5 15 30 60 120 240 360 720 minute
+# D day
+# W week
+# M month
+ws.kline_stream(
+    interval='1',  # 5 minute, https://bybit-exchange.github.io/docs/v5/enum#interval
+    symbol= mysymbol, # "BTCUSDT",
+    callback=handle_message,
+)
+
+
 
 
 
@@ -159,7 +215,7 @@ def get_plot_data():
     #x = df['timestamp'].index.astype("str").tolist()
     x = df.index.astype("str").tolist()
     y = df['close'].astype(float).tolist()
-    volume = df['volume'].astype(int).tolist()
+    volume = df['volume'].astype(float).tolist()
     lines = [];
     for crta in crte:
         lines.append(crta.plotlyLine());
@@ -225,5 +281,7 @@ def home():
 
 
 
-Debug(app)
-app.run(debug=True)
+#Debug(app)
+app.run(debug=True) #, ssl_context='adhoc')
+
+
