@@ -7,14 +7,17 @@ openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 36
 nginx flask config from
 https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 
-##To start server enter following line in command line
+## To start server enter following line in command line
 
-`sudo apt install gunicorn`
+```
+sudo apt install gunicorn
+sudo apt install certbot python3-certbot-nginx
+```
 
 `gunicorn --certfile cert.pem --keyfile key.pem -b 127.0.0.1:8000 app:app`
 
 
-##nginx.conf
+## nginx.conf
 
 Install nginx.com by `apt get install nginx`
 Below is sample nginx.conf, you can edit it on linux by
@@ -45,3 +48,13 @@ server {
     }
 }
 ```
+
+
+# certbot and nginx
+
+from
+`https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-20-04`
+
+`sudo certbot --nginx -d kz.com -d crypto.kz.com`
+
+

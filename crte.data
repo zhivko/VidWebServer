@@ -1,20 +1,64 @@
 [
   {
     "i": 0,
-    "ime": "crta_1708377002757",
+    "ime": "crta_1708557612806",
     "py/object": "Crta.Crta",
-    "x0": "2024-02-12 19:03:27.3447",
-    "x1": "2024-02-22 20:49:24.7954",
-    "y0": 52634.727923711755,
-    "y1": 52634.719135046915
+    "x0": "2024-01-30 19:04:17.1429",
+    "x0_timestamp": {
+      "__reduce__": [
+        {
+          "py/type": "datetime.datetime"
+        },
+        [
+          "B+gBHhMEEQIuNA=="
+        ]
+      ],
+      "py/object": "datetime.datetime"
+    },
+    "x1": "2024-02-09 05:21:25.7143",
+    "x1_timestamp": {
+      "__reduce__": [
+        {
+          "py/type": "datetime.datetime"
+        },
+        [
+          "B+gCCQUVGQrmPA=="
+        ]
+      ],
+      "py/object": "datetime.datetime"
+    },
+    "y0": 49177.338474092205,
+    "y1": 51405.42823337413
   },
   {
     "i": 1,
-    "ime": "crta_1708377005972",
+    "ime": "crta_1708558671324",
     "py/object": "Crta.Crta",
-    "x0": "2024-02-12 15:29:37.96",
-    "x1": "2024-02-22 14:46:05.2673",
-    "y0": 50882.365780998385,
-    "y1": 50882.403370053034
+    "x0": "2024-02-13 07:04:17.1429",
+    "x0_timestamp": {
+      "__reduce__": [
+        {
+          "py/type": "datetime.datetime"
+        },
+        [
+          "B+gCDQcEEQIuNA=="
+        ]
+      ],
+      "py/object": "datetime.datetime"
+    },
+    "x1": "2024-02-21 22:30",
+    "x1_timestamp": {
+      "__reduce__": [
+        {
+          "py/type": "datetime.datetime"
+        },
+        [
+          "B+gCFRYeAAAAAA=="
+        ]
+      ],
+      "py/object": "datetime.datetime"
+    },
+    "y0": 52461.85010199918,
+    "y1": 52461.85010199918
   }
 ]

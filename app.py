@@ -4,13 +4,14 @@
 #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
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
-from flask import Flask, render_template, render_template_string, request
+from flask import Flask, render_template, request, send_from_directory
 from flask_debug import Debug
 import os.path
 import traceback
 import sys
 from Crta import Crta
 import re
+import intersect
 
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
@@ -96,9 +97,27 @@ print(tickers)
 mysymbol = "BTCUSDT"
 interval = 60
 
+def calculateCrossSections():
+    
+    
+    for index, row in df.tail(20).iterrows():
+        print(index)
+        line1 = (
+                (df['index'].at[index], df['close'].at[index]),
+                (df['index'].at[index-1], df['close'].at[index-1])
+                )
+        for crta in crte:
+            line2 = (
+                    (crta.x0_timestamp, crta.y0),
+                    (crta.x1_timestamp, crta.y1)
+                    )
+            if intersect.crosses(line1,line2):
+                print(line1)
+            
 
 def pullNewData(mysymbol, start, interval):
     global df
+    added = False
     while True:
         print(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
             ' Collecting data from ' + \
@@ -119,14 +138,17 @@ def pullNewData(mysymbol, start, interval):
         time.sleep(0.1)
         
         df = pd.concat([df, latest])
+        added=True
         print("Appended data.")
         if len(latest) == 1:
             break
     
-    
-    df.drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
-    df.to_csv(dataPath)
-    print("Saved to csv.")
+    if added:
+        df.drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
+        df.to_csv(dataPath)
+        print("Saved to csv.")
+        
+        calculateCrossSections()
 
 
 def get_last_timestamp(df):
@@ -141,9 +163,10 @@ if not os.path.isfile(dataPath):
 
 else:
     df=pd.read_csv(dataPath)
-    df.index = df.timestamp
     df = df.drop(['timestamp'], axis=1)
     df = df.rename(columns={"timestamp.1": "timestamp"})
+    f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+    df.index = df.timestamp.apply(f)
 
 print(df)
 
@@ -243,7 +266,9 @@ def get_plot_data():
         lines.append(crta.plotlyLine());
     return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol}
     
-app = Flask(__name__)
+app = Flask(__name__,
+            static_folder='./static',
+            template_folder='./templates')
 
 
 @app.route('/addLine', methods=['POST'])
@@ -295,6 +320,14 @@ def addLine():
     
     return "ok", 200
 
+'''
+@app.route('/favicon.ico')
+def favicon():
+    print(os.path.join(app.root_path, 'static'))
+    return send_from_directory(app.static_folder, 'favicon.ico') 
+'''    
+
+
 @app.route('/')
 def home():
     plot_data1 = get_plot_data()
@@ -302,6 +335,5 @@ def home():
     #return render_template_string(template,plot_data=plot_data1)
 
 
-
 #Debug(app)
-#app.run(debug=True, ssl_context=('cert.pem', 'key.pem'))
+app.run(debug=True, ssl_context=('cert.pem', 'key.pem'))
