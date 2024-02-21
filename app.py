@@ -3,6 +3,7 @@
 #flask run
 #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
 # test
+# https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 from flask import Flask, render_template, render_template_string, request
 from flask_debug import Debug
 import os.path
@@ -16,7 +17,7 @@ from pybit.unified_trading import WebSocket
 
 import pandas as pd
 import datetime as dt
-import time 
+import time, threading
 import json
 import jsonpickle
 from typing import List
@@ -25,7 +26,8 @@ import pybit
 from datetime import datetime, timezone, tzinfo
 import pytz
 
-global lineCounter
+global lineCounter, df, interval
+
 
 lineCounter=0
 
@@ -42,12 +44,8 @@ if os.path.isfile(crtePath):
 
 
 
-
-
 def format_data(response):
     '''
-    
-
     Parameters
     ----------
     respone : dict
@@ -96,20 +94,16 @@ tickers = [asset['symbol'] for asset in result if asset['symbol'].endswith('USDT
 print(tickers)
 
 mysymbol = "BTCUSDT"
+interval = 60
 
 
-
-
-def get_last_timestamp(df):
-    return int(df.timestamp[-1:].values[0])
-
-dataPath = mysymbol + '.data'
-if not os.path.isfile(dataPath):
-    start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
-    interval = 60
-    df = pd.DataFrame()
-    
+def pullNewData(mysymbol, start, interval):
+    global df
     while True:
+        print(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
+            ' Collecting data from ' + \
+            dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
+
         response = session.get_kline(category='linear', 
                                      symbol=mysymbol, 
                                      start=start,
@@ -125,12 +119,25 @@ if not os.path.isfile(dataPath):
         time.sleep(0.1)
         
         df = pd.concat([df, latest])
-        print(f'Collecting data starting {dt.datetime.fromtimestamp(start/1000)}')
-        if len(latest) == 1: break
+        print("Appended data.")
+        if len(latest) == 1:
+            break
     
     
     df.drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
     df.to_csv(dataPath)
+    print("Saved to csv.")
+
+
+def get_last_timestamp(df):
+    return int(df.timestamp[-1:].values[0])
+
+dataPath = mysymbol + '.data'
+if not os.path.isfile(dataPath):
+    start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
+    df = pd.DataFrame()
+        
+    pullNewData(mysymbol, start, interval)
 
 else:
     df=pd.read_csv(dataPath)
@@ -147,6 +154,7 @@ print(df)
 #                             interval='D').get('result')
 #df = format_data(response)
 # https://bybit-exchange.github.io/docs/v5/websocket/public/kline
+'''
 ws = WebSocket(
     testnet=True,
     channel_type="linear",
@@ -196,7 +204,20 @@ ws.kline_stream(
     symbol= mysymbol, # "BTCUSDT",
     callback=handle_message,
 )
+'''
 
+currentHour = 0
+def repeatPullNewData():
+    global currentHour
+    if dt.datetime.now().hour != currentHour:
+        currentHour = dt.datetime.now().hour
+        print("beep - hour changed" , str(currentHour))    
+        start = get_last_timestamp(df)
+        pullNewData(mysymbol, start, interval)
+    
+    threading.Timer(5, repeatPullNewData).start()
+    
+repeatPullNewData()
 
 
 
@@ -283,6 +304,4 @@ def home():
 
 
 #Debug(app)
-app.run(debug=True) #, ssl_context='adhoc')
-
-
+#app.run(debug=True, ssl_context=('cert.pem', 'key.pem'))
