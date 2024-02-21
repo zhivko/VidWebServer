@@ -8,10 +8,15 @@ nginx flask config from
 https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 
 ##To start server enter following line in command line
-gunicorn --certfile cert.pem --keyfile key.pem -b 127.0.0.1:8000 app:app
+
+`sudo apt install gunicorn`
+
+`gunicorn --certfile cert.pem --keyfile key.pem -b 127.0.0.1:8000 app:app`
 
 
 ##nginx.conf
+
+Install nginx.com by `apt get install nginx`
 Below is sample nginx.conf, you can edit it on linux by
 
 `sudo nano /etc/nginx.conf`
