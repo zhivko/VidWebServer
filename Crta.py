@@ -27,7 +27,7 @@ class Crta(object):
                 val = val + ":0.0"
             if not "." in val:
                 val = val + ".0"
-            return datetime.strptime(val, "%Y-%m-%d %H:%M:%S.%f")        
+            return datetime.strptime(val, "%Y-%m-%d %H:%M:%S.%f").timestamp()*1000      
         self.x0_timestamp = convertTimeToValue(x0)
         self.x1_timestamp = convertTimeToValue(x1)
         

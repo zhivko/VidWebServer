@@ -19,7 +19,7 @@ sudo apt install certbot python3-certbot-nginx
 
 ## nginx.conf
 
-Install nginx.com by `apt get install nginx`
+Install nginx.com by `sudo apt install nginx certbot python3-certbot-nginx`
 Below is sample nginx.conf, you can edit it on linux by
 
 `sudo nano /etc/nginx.conf`
@@ -55,6 +55,6 @@ server {
 from
 `https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-20-04`
 
-`sudo certbot --nginx -d kz.com -d crypto.kz.com`
+`sudo certbot --nginx -d crypto.zhivko.eu -d zhivko.eu`
 
 

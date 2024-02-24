@@ -101,18 +101,18 @@ def calculateCrossSections():
     
     
     for index, row in df.tail(20).iterrows():
-        print(index)
+        loc = df.index.get_loc(row.name)
         line1 = (
-                (df['index'].at[index], df['close'].at[index]),
-                (df['index'].at[index-1], df['close'].at[index-1])
+                (df.iloc[loc].timestamp, df.iloc[loc].close),
+                (df.iloc[loc-1].timestamp, df.iloc[loc-1].close),
                 )
         for crta in crte:
             line2 = (
-                    (crta.x0_timestamp, crta.y0),
-                    (crta.x1_timestamp, crta.y1)
+                    (crta.x0_timestamp.timestamp(), crta.y0),
+                    (crta.x1_timestamp.timestamp(), crta.y1)
                     )
             if intersect.crosses(line1,line2):
-                print(line1)
+                print("Intersect: ", line1)
             
 
 def pullNewData(mysymbol, start, interval):
@@ -336,4 +336,4 @@ def home():
 
 
 #Debug(app)
-app.run(debug=True, ssl_context=('cert.pem', 'key.pem'))
+app.run(debug=True) #, ssl_context=('cert.pem', 'key.pem'))
