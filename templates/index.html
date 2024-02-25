@@ -14,12 +14,21 @@
 <script type="text/javascript">
 
 {% autoescape false %}
+var krogci = {
+		mode: 'markers',
+	    type: 'scatter',
+	    x: {{ plot_data.krogci_x }} ,
+	    y: {{ plot_data.krogci_y }} ,
+	    marker: { size: 12 },
+        showlegend: true
+	    
+};
 var trace1 = {
 	    type: 'scatter',
 	    x: {{ plot_data.x_axis }} ,
 	    y: {{ plot_data.y_axis }} ,
 	    name: '{{ plot_data.title }}',
-        showlegend: false
+        showlegend: true
 	    
 };
 var traceVolume= {
@@ -72,7 +81,7 @@ var layout = {
         pad: 4
     }
 };
-var data = [trace1, traceVolume];
+var data = [trace1, traceVolume, krogci];
 var config = {
 		  toImageButtonOptions: {
 		    format: 'svg', // one of png, svg, jpeg, webp
@@ -135,6 +144,47 @@ myplot.on('plotly_relayout', (event) => {
     	http.send(JSON.stringify(event));
     }
 });
+
+myplot.on('plotly_click',
+	    function(data){
+	      var point = data.points[0],
+	          newAnnotation = {
+	            x: point.xaxis.d2l(point.x),
+	            y: point.yaxis.d2l(point.y),
+	            arrowhead: 6,
+	            ax: 0,
+	            ay: -80,
+	            bgcolor: 'rgba(255, 255, 255, 0.9)',
+	            arrowcolor: point.fullData.marker.color,
+	            font: {size:12},
+	            bordercolor: point.fullData.marker.color,
+	            borderwidth: 3,
+	            borderpad: 4,
+	            text: '<i>Series Identification</i><br>' + 
+	                  '<b>Year</b>       '+(point.data.name) + '<br>' +
+	                  '<i>Point Identification</i><br>' + 
+	                  '<b>Month</b>      '+ (months[point.pointNumber]) + 
+	                  '<br><i>Point Values</i><br>' +
+	                  '<b>Time</b>     '+(point.x).toPrecision(4) +      
+	                  '<br><b>Price</b>     '+(point.y).toPrecision(4) 
+	                  
+	        },
+	        divid = document.getElementById('plot_div'),
+	        newIndex = (divid.layout.annotations || []).length;
+			console.log(point.pointNumber)
+	     // delete instead if clicked twice
+		  if(newIndex) {
+	       var foundCopy = false;
+	       divid.layout.annotations.forEach(function(ann, sameIndex) {
+	         if(ann.text === newAnnotation.text ) {
+	           Plotly.relayout('myDiv', 'annotations[' + sameIndex + ']', 'remove');
+	           foundCopy = true;
+	         }
+	       });
+	       if(foundCopy) return;
+	     }
+	     Plotly.relayout('myDiv', 'annotations[' + newIndex + ']', newAnnotation);
+	  })  
 
 </script>
 </body>

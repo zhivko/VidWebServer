@@ -11,7 +11,7 @@ import traceback
 import sys
 from Crta import Crta
 import re
-import intersect
+from intersect import line_intersection, crosses
 
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
@@ -26,8 +26,13 @@ import pybit
 
 from datetime import datetime, timezone, tzinfo
 import pytz
-
-global lineCounter, df, interval
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+import smtplib
+from pathlib import Path
+from string import Template
+global lineCounter, df, interval, krogci_x, krogci_y
 
 
 lineCounter=0
@@ -44,7 +49,50 @@ if os.path.isfile(crtePath):
         crte = jsonpickle.decode(json_str)
 
 
+with open("./authcreds.json") as j:
+    creds = json.load(j)
 
+kljuc = creds['kljuc']
+geslo = creds['geslo']
+
+def gmail():
+    global creds    
+    gmailEmail = creds['gmailEmail']
+    gmailPwd = creds['gmailPwd']
+
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo()
+        server.starttls()
+        server.login(gmailEmail,gmailPwd)
+        server.set_debuglevel(1)
+        addrTo = ["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"]
+        server.sendmail(gmailEmail, addrTo, "Hello from python")
+        server.close()
+        print('successfully sent the mail')
+    except:
+        print("failed to send mail")
+
+    '''
+    message = MIMEMultipart()
+    message["from"] = "gmailEmail"
+    message["to"] = "klemen.zivkovic@gmail.com"
+    message["subject"] = "Python Test"
+    template = Template(Path("./templates/mailTemplate.html").read_text())
+    body = template.substitute({"name":"Gigi"})
+    message.attach(MIMEText(body, "html"))
+    #message.attach(Path("./templates/template.html"))
+    with smtplib.SMTP(host="smtp.gmail.com", port= 587) as smtp:
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.login(gmailEmail, gmailPwd)
+        smtp.set_debuglevel(1)
+        smtp.sendmail(gmailEmail, message["to"], message)
+        smtp.close()
+    print("sent")
+    '''
+    
 def format_data(response):
     '''
     Parameters
@@ -80,12 +128,6 @@ def format_data(response):
 
 
 
-with open("./authcreds.json") as j:
-    creds = json.load(j)
-
-kljuc = creds['kljuc']
-geslo = creds['geslo']
-  
 session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
 
 
@@ -98,21 +140,29 @@ mysymbol = "BTCUSDT"
 interval = 60
 
 def calculateCrossSections():
-    
-    
-    for index, row in df.tail(20).iterrows():
+    global krogci_x, krogci_y
+    krogci_x=[]
+    krogci_y=[]
+    for index, row in df.tail(100).iterrows():
         loc = df.index.get_loc(row.name)
         line1 = (
                 (df.iloc[loc].timestamp, df.iloc[loc].close),
                 (df.iloc[loc-1].timestamp, df.iloc[loc-1].close),
                 )
         for crta in crte:
+            '''
+            if type(crta.x0_timestamp) == float:
+                print("sfdsdf")
+            '''
             line2 = (
-                    (crta.x0_timestamp.timestamp(), crta.y0),
-                    (crta.x1_timestamp.timestamp(), crta.y1)
+                    (crta.x0_timestamp, crta.y0),
+                    (crta.x1_timestamp, crta.y1)
                     )
-            if intersect.crosses(line1,line2):
-                print("Intersect: ", line1)
+            aliCrosses = crosses(line1,line2)
+            if aliCrosses:
+                inter = line_intersection(line1,line2)
+                krogci_x.append(dt.datetime.utcfromtimestamp(int(inter[0])/1000).strftime("%Y-%m-%d %H:%M:%S"))
+                krogci_y.append(inter[1])
             
 
 def pullNewData(mysymbol, start, interval):
@@ -264,7 +314,7 @@ def get_plot_data():
     lines = [];
     for crta in crte:
         lines.append(crta.plotlyLine());
-    return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol}
+    return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}
     
 app = Flask(__name__,
             static_folder='./static',
