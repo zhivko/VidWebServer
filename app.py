@@ -59,7 +59,7 @@ with open("./authcreds.json") as j:
 kljuc = creds['kljuc']
 geslo = creds['geslo']
 
-def gmail():
+def gmail(msg):
     global creds
     gmailEmail = creds['gmailEmail']
     gmailPwd = creds['gmailPwd']
@@ -70,9 +70,9 @@ def gmail():
         server.ehlo()
         server.starttls()
         server.login(gmailEmail,gmailPwd)
-        server.set_debuglevel(1)
+        #server.set_debuglevel(1)
         addrTo = ["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"]
-        server.sendmail(gmailEmail, addrTo, "Hello from python")
+        server.sendmail(gmailEmail, addrTo, msg)
         server.close()
         print('successfully sent the mail')
     except:
@@ -144,20 +144,16 @@ mysymbol = "BTCUSDT"
 interval = 60
 
 def calculateCrossSections():
-    global krogci_x, krogci_y
+    global krogci_x, krogci_y, mysymbol
     krogci_x=[]
     krogci_y=[]
-    for index, row in df.tail(100).iterrows():
+    for index, row in df.tail(5).iterrows():
         loc = df.index.get_loc(row.name)
         line1 = (
                 (df.iloc[loc].timestamp, df.iloc[loc].close),
                 (df.iloc[loc-1].timestamp, df.iloc[loc-1].close),
                 )
         for crta in crte:
-            '''
-            if type(crta.x0_timestamp) == float:
-                print("sfdsdf")
-            '''
             line2 = (
                     (crta.x0_timestamp, crta.y0),
                     (crta.x1_timestamp, crta.y1)
@@ -165,8 +161,13 @@ def calculateCrossSections():
             aliCrosses = crosses(line1,line2)
             if aliCrosses:
                 inter = line_intersection(line1,line2)
-                krogci_x.append(dt.datetime.utcfromtimestamp(int(inter[0])/1000).strftime("%Y-%m-%d %H:%M:%S"))
+                time = dt.datetime.utcfromtimestamp(int(inter[0])/1000).strftime("%Y-%m-%d %H:%M:%S")
+                krogci_x.append(time)
                 krogci_y.append(inter[1])
+                gmail("Crossing happened in " + mysymbol + "\n"
+                      "time:  " + time + "\n"
+                      "price: " + inter[1] + "\n"
+                      )
             
 
 def pullNewData(mysymbol, start, interval):
@@ -351,6 +352,7 @@ def addLine():
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
             needsWrite=True
+            calculateCrossSections()
         else:
             print("Did not find crta: " + intI)
     else:
@@ -394,5 +396,5 @@ def home():
 #app.config['DEBUG'] = True
 
 if __name__ == '__main__':
-	app.run(host='127.0.0.1', port = '8000')
+    app.run(host = '127.0.0.1', port = '8000')
 
