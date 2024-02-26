@@ -1,0 +1,12 @@
+[Unit]
+Description=My Gunicorn project description
+After=network.target
+
+[Service]
+User=klemen
+Group=www-data
+WorkingDirectory=/home/klemen/git/VidWebServer
+ExecStart=/usr/bin/gunicorn --bind 127.0.0.1:8000 app:app
+
+[Install]
+WantedBy=multi-user.target
