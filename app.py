@@ -13,6 +13,7 @@ from Crta import Crta
 import re
 from intersect import line_intersection, crosses
 
+
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
 
@@ -36,6 +37,9 @@ global lineCounter, df, interval, krogci_x, krogci_y
 
 
 lineCounter=0
+krogci_x=[]
+krogci_y=[]
+
 
 jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
 
@@ -56,7 +60,7 @@ kljuc = creds['kljuc']
 geslo = creds['geslo']
 
 def gmail():
-    global creds    
+    global creds
     gmailEmail = creds['gmailEmail']
     gmailPwd = creds['gmailPwd']
 
@@ -92,7 +96,7 @@ def gmail():
         smtp.close()
     print("sent")
     '''
-    
+
 def format_data(response):
     '''
     Parameters
@@ -386,4 +390,9 @@ def home():
 
 
 #Debug(app)
-app.run(debug=True) #, ssl_context=('cert.pem', 'key.pem'))
+#app = Flask(__name__)
+#app.config['DEBUG'] = True
+
+if __name__ == '__main__':
+	app.run(host='127.0.0.1', port = '8000')
+

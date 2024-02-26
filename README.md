@@ -15,6 +15,7 @@ sudo apt install certbot python3-certbot-nginx
 ```
 
 `gunicorn --certfile cert.pem --keyfile key.pem -b 127.0.0.1:8000 app:app`
+`gunicorn -b 127.0.0.1:8000 app:app`
 
 
 ## nginx.conf
@@ -55,6 +56,41 @@ server {
 from
 `https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-20-04`
 
-`sudo certbot --nginx -d crypto.zhivko.eu -d zhivko.eu`
+`sudo certbot --nginx -d crypto.zhivko.eu`
 
 
+#using gunicorn
+
+`gunicorn app:app`
+
+
+# creating ubuntu service
+
+Edit file with
+
+`sudo nano /etc/systemd/system/myproject.service`
+
+paste following:
+
+```
+[Unit]
+Description=My Gunicorn project description
+After=network.target
+
+[Service]
+User=klemen
+Group=www-data
+WorkingDirectory=/home/[user]/git/VidWebServer
+ExecStart=/usr/bin/gunicorn --bind 127.0.0.1:8000 app:app
+
+[Install]
+WantedBy=multi-user.target 
+```
+
+Start with:
+
+`systemctl restart myproject.service`
+
+# for renewing cert
+
+`sudo certbot renew -- nginx`
