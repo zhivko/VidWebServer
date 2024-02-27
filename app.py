@@ -84,6 +84,8 @@ def gmail(message):
         app.logger.info('successfully sent the mail')
     except:
         app.logger.error("failed to send mail")
+        app.logger.error(traceback.format_exc())
+
 
     '''
     message = MIMEMultipart()
@@ -386,7 +388,6 @@ def addLine():
         except:
             if os.path.isfile(crtePath):        
                 os.remove(crtePath)
-            exc = sys.exc_info()
             app.logger.error(traceback.format_exc())
             # or
             app.logger.info(sys.exc_info()[2])           
