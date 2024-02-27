@@ -12,7 +12,7 @@ import sys
 from Crta import Crta
 import re
 from intersect import line_intersection, crosses
-
+import logging
 
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
@@ -77,9 +77,9 @@ def gmail(message):
         
         server.sendmail(message)
         server.close()
-        print('successfully sent the mail')
+        app.logger.info('successfully sent the mail')
     except:
-        print("failed to send mail")
+        app.logger.error("failed to send mail")
 
     '''
     message = MIMEMultipart()
@@ -141,7 +141,7 @@ session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
 result = session.get_tickers(category="linear").get('result')['list']
 
 tickers = [asset['symbol'] for asset in result if asset['symbol'].endswith('USDT')]
-print(tickers)
+app.logger.info(tickers)
 
 mysymbol = "BTCUSDT"
 interval = 60
@@ -192,7 +192,7 @@ def pullNewData(mysymbol, start, interval):
     global df
     added = False
     while True:
-        print(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
+        app.logger.info(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
             ' Collecting data from ' + \
             dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
 
@@ -212,14 +212,14 @@ def pullNewData(mysymbol, start, interval):
         
         df = pd.concat([df, latest])
         added=True
-        print("Appended data.")
+        app.logger.info("Appended data.")
         if len(latest) == 1:
             break
     
     if added:
         df.drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
         df.to_csv(dataPath)
-        print("Saved to csv.")
+        app.logger.info("Saved to csv.")
         
         calculateCrossSections()
 
@@ -241,7 +241,7 @@ else:
     f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
     df.index = df.timestamp.apply(f)
 
-print(df)
+app.logger.info(df)
 
 
 
@@ -307,7 +307,7 @@ def repeatPullNewData():
     global currentHour
     if dt.datetime.now().hour != currentHour:
         currentHour = dt.datetime.now().hour
-        print("beep - hour changed" , str(currentHour))    
+        app.logger.info("beep - hour changed" , str(currentHour))    
         start = get_last_timestamp(df)
         pullNewData(mysymbol, start, interval)
     
@@ -347,7 +347,7 @@ app = Flask(__name__,
 @app.route('/addLine', methods=['POST'])
 def addLine():
     contentJson = request.json
-    print(contentJson)
+    app.logger.info(contentJson)
 
     needsWrite=False
     
@@ -372,9 +372,9 @@ def addLine():
             needsWrite=True
             calculateCrossSections()
         else:
-            print("Did not find crta: " + intI)
+            app.logger.info("Did not find crta: " + intI)
     else:
-        print(contentJson)
+        app.logger.info(contentJson)
 
 
     if needsWrite:
@@ -387,9 +387,9 @@ def addLine():
             if os.path.isfile(crtePath):        
                 os.remove(crtePath)
             exc = sys.exc_info()
-            print(traceback.format_exc())
+            app.logger.error(traceback.format_exc())
             # or
-            print(sys.exc_info()[2])           
+            app.logger.info(sys.exc_info()[2])           
 
     
     return "ok", 200
@@ -413,6 +413,12 @@ def home():
 #app = Flask(__name__)
 #app.config['DEBUG'] = True
 
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+
 if __name__ == '__main__':
     app.run(host = '127.0.0.1', port = '8000')
+
 
