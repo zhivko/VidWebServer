@@ -166,7 +166,7 @@ def calculateCrossSections():
                 krogci_y.append(inter[1])
                 gmail("Crossing happened in " + mysymbol + "\n"
                       "time:  " + time + "\n"
-                      "price: " + inter[1] + "\n"
+                      "price: " + str(inter[1]) + "\n"
                       )
             
 
