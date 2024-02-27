@@ -174,12 +174,9 @@ def calculateCrossSections():
                 krogci_x.append(time)
                 krogci_y.append(inter[1])
                 
-                text = 'From: Me@my.org' + \
-                      'Subject: ' + mysymbol + \
-                      'Crossing happened in ' + mysymbol + '\n' + \
-                      'time:  ' + time + '\n' + \
-                      'price: ' + str(inter[1]) + '\n'
-                      
+                text =  'Crossing happened for ' + mysymbol + '\n' + \
+                        'time:  ' + time + '\n' + \
+                        'price: ' + str(inter[1]) + '\n'
                       
                 message = MIMEMultipart("alternative")
                 message["Subject"] = mysymbol
