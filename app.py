@@ -164,10 +164,13 @@ def calculateCrossSections():
                 time = dt.datetime.utcfromtimestamp(int(inter[0])/1000).strftime("%Y-%m-%d %H:%M:%S")
                 krogci_x.append(time)
                 krogci_y.append(inter[1])
-                gmail("Crossing happened in " + mysymbol + "\n"
-                      "time:  " + time + "\n"
-                      "price: " + str(inter[1]) + "\n"
-                      )
+                
+                msg = 'From: Me@my.org' + \
+                      'Subject: ' + mysymbol + \
+                      'Crossing happened in ' + mysymbol + '\n' + \
+                      'time:  ' + time + '\n' + \
+                      'price: ' + str(inter[1]) + '\n'
+                gmail(msg)
             
 
 def pullNewData(mysymbol, start, interval):
