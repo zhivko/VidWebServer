@@ -40,6 +40,10 @@ lineCounter=0
 krogci_x=[]
 krogci_y=[]
 
+app = Flask(__name__,
+            static_folder='./static',
+            template_folder='./templates')
+
 
 jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
 
@@ -339,10 +343,6 @@ def get_plot_data():
         lines.append(crta.plotlyLine());
     return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}
     
-app = Flask(__name__,
-            static_folder='./static',
-            template_folder='./templates')
-
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
