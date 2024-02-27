@@ -77,7 +77,7 @@ def gmail(message):
         #server.set_debuglevel(1)
         
         message["From"] = gmailEmail
-        message["To"] = ["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"]
+        message["To"] = ', '.join(["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"])
         
         server.send_message(message)
         server.close()
