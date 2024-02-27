@@ -79,7 +79,7 @@ def gmail(message):
         message["From"] = gmailEmail
         message["To"] = ["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"]
         
-        server.sendmail(message)
+        server.send_message(message)
         server.close()
         app.logger.info('successfully sent the mail')
     except:
