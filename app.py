@@ -59,7 +59,7 @@ with open("./authcreds.json") as j:
 kljuc = creds['kljuc']
 geslo = creds['geslo']
 
-def gmail(msg):
+def gmail(message):
     global creds
     gmailEmail = creds['gmailEmail']
     gmailPwd = creds['gmailPwd']
@@ -71,8 +71,11 @@ def gmail(msg):
         server.starttls()
         server.login(gmailEmail,gmailPwd)
         #server.set_debuglevel(1)
-        addrTo = ["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"]
-        server.sendmail(gmailEmail, addrTo, msg)
+        
+        message["From"] = gmailEmail
+        message["To"] = ["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"]
+        
+        server.sendmail(message)
         server.close()
         print('successfully sent the mail')
     except:
@@ -165,12 +168,24 @@ def calculateCrossSections():
                 krogci_x.append(time)
                 krogci_y.append(inter[1])
                 
-                msg = 'From: Me@my.org' + \
+                text = 'From: Me@my.org' + \
                       'Subject: ' + mysymbol + \
                       'Crossing happened in ' + mysymbol + '\n' + \
                       'time:  ' + time + '\n' + \
                       'price: ' + str(inter[1]) + '\n'
-                gmail(msg)
+                      
+                      
+                message = MIMEMultipart("alternative")
+                message["Subject"] = mysymbol
+                
+                # convert both parts to MIMEText objects and add them to the MIMEMultipart message
+                part1 = MIMEText(text, "plain")
+                #part2 = MIMEText(html, "html")
+                message.attach(part1)
+                #message.attach(part2)                   
+                      
+                gmail(message)
+            
             
 
 def pullNewData(mysymbol, start, interval):
