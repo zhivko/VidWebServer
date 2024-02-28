@@ -65,6 +65,7 @@ geslo = creds['geslo']
 
 def gmail(message):
     global creds, mysymbol
+    return
     gmailEmail = creds['gmailEmail']
     gmailPwd = creds['gmailPwd']
 

@@ -83,6 +83,7 @@ var layout = {
 };
 var data = [trace1, traceVolume, krogci];
 var config = {
+		  scrollZoom: true,
 		  toImageButtonOptions: {
 		    format: 'svg', // one of png, svg, jpeg, webp
 		    filename: 'custom_image',
@@ -101,16 +102,18 @@ var myplot= document.getElementById("plot_div");
 var text_div= document.getElementById("text_div");
 myplot.on('plotly_relayout', (event) => {
 	console.log(event);
-	var http = new XMLHttpRequest();
+	
 	var url = "/addLine";
+	
+	var http = new XMLHttpRequest();
 	http.open("POST", url, true);
 	http.setRequestHeader("Content-type", "application/json; charset=utf-8");
-
 	http.onreadystatechange = function() {
 	    if(http.readyState == 4 && http.status == 200) {
 			text_div.innerHTML += "poslal crto na python server\n";
 	    }
-	}
+	}					
+
 	
     if ('shapes' in event) {
         if (event["shapes"].length > 0) {
@@ -141,7 +144,9 @@ myplot.on('plotly_relayout', (event) => {
     }
     else
     {
-    	http.send(JSON.stringify(event));
+    	eventStr = JSON.stringify(event)
+    	if(eventStr.includes("shapes[0]"))
+    		http.send(eventStr);
     }
 });
 
