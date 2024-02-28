@@ -64,7 +64,7 @@ kljuc = creds['kljuc']
 geslo = creds['geslo']
 
 def gmail(message):
-    global creds
+    global creds, mysymbol
     gmailEmail = creds['gmailEmail']
     gmailPwd = creds['gmailPwd']
 
@@ -76,8 +76,10 @@ def gmail(message):
         server.login(gmailEmail,gmailPwd)
         #server.set_debuglevel(1)
         
+        message["Subject"] = mysymbol
         message["From"] = gmailEmail
-        message["To"] = ', '.join(["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"])
+        
+        message["To"] = creds['emailTo'] #', '.join(["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"])
         
         server.send_message(message)
         server.close()
@@ -179,7 +181,6 @@ def calculateCrossSections():
                         'price: ' + str(inter[1]) + '\n'
                       
                 message = MIMEMultipart("alternative")
-                message["Subject"] = mysymbol
                 
                 # convert both parts to MIMEText objects and add them to the MIMEMultipart message
                 part1 = MIMEText(text, "plain")
