@@ -158,7 +158,8 @@ def calculateCrossSections():
     global krogci_x, krogci_y, mysymbol
     krogci_x=[]
     krogci_y=[]
-    for index, row in df.tail(5).iterrows():
+    text_data = ''
+    for index, row in df.tail(100).iterrows():
         loc = df.index.get_loc(row.name)
         line1 = (
                 (df.iloc[loc].timestamp, df.iloc[loc].close),
@@ -176,21 +177,18 @@ def calculateCrossSections():
                 krogci_x.append(time)
                 krogci_y.append(inter[1])
                 
-                text =  'Crossing happened for ' + mysymbol + '\n' + \
+                text_data = text_data + \
                         'time:  ' + time + '\n' + \
-                        'price: ' + str(inter[1]) + '\n'
+                        'price: ' + str(inter[1]) + '\n\n'
                       
-                message = MIMEMultipart("alternative")
-                
-                # convert both parts to MIMEText objects and add them to the MIMEMultipart message
-                part1 = MIMEText(text, "plain")
-                #part2 = MIMEText(html, "html")
-                message.attach(part1)
-                #message.attach(part2)                   
-                      
-                gmail(message)
             
-            
+    if text_data!='':
+        text =  'Crossing happened for ' + mysymbol + '\n' + text_data
+        message = MIMEMultipart("alternative")
+        part1 = MIMEText(text, "plain")
+        message.attach(part1)
+        gmail(message)
+        
 
 def pullNewData(mysymbol, start, interval):
     global df
