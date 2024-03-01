@@ -43,7 +43,7 @@ krogci_x=[]
 krogci_y=[]
 mysymbol = "BTCUSDT"
 interval = 60
-locale.setlocale(locale.LC_ALL, 'si_SI')
+locale.setlocale(locale.LC_ALL, 'sl_SI')
 
 app = Flask(__name__,
             static_folder='./static',
