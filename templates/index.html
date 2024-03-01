@@ -32,7 +32,7 @@ var trace1 = {
 	    
 };
 var traceVolume= {
-        type:"bar",
+        type: "bar",
         x: {{ plot_data.x_axis }},
         y: {{ plot_data.volume }},
         marker: { color: 'blue'},
@@ -57,7 +57,9 @@ var layout = {
     autoscale: true,
     
     xaxis: {
-        title: 'Time'
+        title: 'Time',
+        autorange: false,
+        range: ["2024-02-01", "2024-03-01"]
     },
     yaxis: {
     	autorange: true,
@@ -84,6 +86,7 @@ var layout = {
 var data = [trace1, traceVolume, krogci];
 var config = {
 		  scrollZoom: true,
+		  showLink: true,
 		  toImageButtonOptions: {
 		    format: 'svg', // one of png, svg, jpeg, webp
 		    filename: 'custom_image',
@@ -103,21 +106,39 @@ var text_div= document.getElementById("text_div");
 myplot.on('plotly_relayout', (event) => {
 	console.log(event);
 	
-	var url = "/addLine";
 	
 	var http = new XMLHttpRequest();
-	http.open("POST", url, true);
-	http.setRequestHeader("Content-type", "application/json; charset=utf-8");
 	http.onreadystatechange = function() {
 	    if(http.readyState == 4 && http.status == 200) {
-			text_div.innerHTML += "poslal crto na python server\n";
+			var myJson = JSON.parse(http.responseText);
+			/*
+			for (var key in myJson) {
+			    if (myJson.hasOwnProperty(key)) {
+			        console.log(key + " -> " + myJson[key]);
+			    }
+			}
+			*/
+	        trace1.x = myJson['x_axis'];
+	        trace1.y = myJson['y_axis'];
+	        
+	        traceVolume.x = myJson['x_axis'];
+	        traceVolume.y = myJson['volume'];
+	        
+	        krogci.x = myJson['krogci_x'];
+	        krogci.y = myJson['krogci_y'];
+	        
+	        Plotly.redraw('plot_div');
 	    }
 	}					
 
 	
     if ('shapes' in event) {
         if (event["shapes"].length > 0) {
-            console.log(event["shapes"].slice(-1));
+        	var url = "/addLine";
+        	http.open("POST", url, true);
+        	http.setRequestHeader("Content-type", "application/json; charset=utf-8");
+
+        	console.log(event["shapes"].slice(-1));
             if(event["shapes"].slice(-1)[0].type=='line'){
 					var esp=document.createElement("span");
 					text_div.appendChild(esp);
@@ -128,11 +149,8 @@ myplot.on('plotly_relayout', (event) => {
 					var y1 = event["shapes"].slice(-1)[0].y1;
 					
 					text_div.innerHTML += "x0:"+x0+" y0:"+y0+" x1:"+x1+" y1:"+y1 + "\n";
-					
-					
 					const crta = {x0: x0, y0: y0, x1: x1, y1:y1};
 					http.send(JSON.stringify(event["shapes"].slice(-1)[0]));
-					
 					//tole zbrise vse crte
 					//Plotly.relayout(myplot, { shapes: [] });
            	}
@@ -146,10 +164,23 @@ myplot.on('plotly_relayout', (event) => {
     {
     	eventStr = JSON.stringify(event)
     	if(eventStr.includes("shapes[0]"))
+    	{
+        	var url = "/addLine";
+    		http.open("POST", url, true);
+    		http.setRequestHeader("Content-type", "application/json; charset=utf-8");
     		http.send(eventStr);
+    	}
+    	else if(eventStr.includes("xaxis.range[0]"))
+    	{
+        	var url = "/scroll";
+			http.open("POST", url, true);
+			http.setRequestHeader("Content-type", "application/json; charset=utf-8");
+    		http.send(eventStr);
+    	}
     }
 });
 
+/*
 myplot.on('plotly_click',
 	    function(data){
 	      var point = data.points[0],
@@ -190,7 +221,7 @@ myplot.on('plotly_click',
 	     }
 	     Plotly.relayout('myDiv', 'annotations[' + newIndex + ']', newAnnotation);
 	  })  
-
+*/
 </script>
 </body>
 </html>  

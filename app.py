@@ -232,7 +232,7 @@ def get_last_timestamp(df):
 
 dataPath = mysymbol + '.data'
 if not os.path.isfile(dataPath):
-    start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
+    start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
     df = pd.DataFrame()
         
     pullNewData(mysymbol, start, interval)
@@ -334,13 +334,36 @@ def get_plot_data():
     #df['time'] = df['timestamp'].apply(f)
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
-    x = df.index.astype("str").tolist()
-    y = df['close'].astype(float).tolist()
-    volume = df['volume'].astype(float).tolist()
+    howmany = 1000
+    x = df.tail(howmany).index.astype("str").tolist()
+    y = df.tail(howmany)['close'].astype(float).tolist()
+    volume = df.tail(howmany)['volume'].astype(float).tolist()
     lines = [];
     for crta in crte:
         lines.append(crta.plotlyLine());
     return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}
+    
+
+@app.errorhandler(Exception)
+def all_exception_handler(error):
+    print(str(error))
+    
+
+@app.route('/scroll', methods=['POST'])
+def scroll():
+    contentJson = request.json
+    app.logger.info(contentJson)
+    
+
+    df_range = df.loc[pd.Timestamp(contentJson['xaxis.range[0]']):pd.Timestamp(contentJson['xaxis.range[1]'])]
+    
+    x = df_range.index.astype("str").tolist()
+    y = df_range['close'].astype(float).tolist()
+    volume = df_range['volume'].astype(float).tolist()
+    lines = [];
+    for crta in crte:
+        lines.append(crta.plotlyLine());
+    return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}, 200    
     
 
 @app.route('/addLine', methods=['POST'])
@@ -417,6 +440,7 @@ if __name__ != '__main__':
     app.logger.setLevel(gunicorn_logger.level)
 
 if __name__ == '__main__':
-    app.run(host = '127.0.0.1', port = '8000')
+    app.run(host = '127.0.0.1', port = '8000', debug=True)
+    
 
 
