@@ -13,6 +13,8 @@ from Crta import Crta
 import re
 from intersect import line_intersection, crosses
 import logging
+import locale
+
 
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
@@ -39,6 +41,9 @@ global lineCounter, df, interval, krogci_x, krogci_y
 lineCounter=0
 krogci_x=[]
 krogci_y=[]
+mysymbol = "BTCUSDT"
+interval = 60
+locale.setlocale(locale.LC_ALL, 'si_SI')
 
 app = Flask(__name__,
             static_folder='./static',
@@ -63,9 +68,10 @@ with open("./authcreds.json") as j:
 kljuc = creds['kljuc']
 geslo = creds['geslo']
 
+
+
 def gmail(message):
     global creds, mysymbol
-    return
     gmailEmail = creds['gmailEmail']
     gmailPwd = creds['gmailPwd']
 
@@ -89,25 +95,12 @@ def gmail(message):
         app.logger.error("failed to send mail")
         app.logger.error(traceback.format_exc())
 
-
-    '''
-    message = MIMEMultipart()
-    message["from"] = "gmailEmail"
-    message["to"] = "klemen.zivkovic@gmail.com"
-    message["subject"] = "Python Test"
-    template = Template(Path("./templates/mailTemplate.html").read_text())
-    body = template.substitute({"name":"Gigi"})
-    message.attach(MIMEText(body, "html"))
-    #message.attach(Path("./templates/template.html"))
-    with smtplib.SMTP(host="smtp.gmail.com", port= 587) as smtp:
-        smtp.ehlo()
-        smtp.starttls()
-        smtp.login(gmailEmail, gmailPwd)
-        smtp.set_debuglevel(1)
-        smtp.sendmail(gmailEmail, message["to"], message)
-        smtp.close()
-    print("sent")
-    '''
+'''
+message = MIMEMultipart("alternative")
+part1 = MIMEText("testing", "plain")
+message.attach(part1)
+gmail(message)
+'''
 
 def format_data(response):
     '''
@@ -152,9 +145,6 @@ result = session.get_tickers(category="linear").get('result')['list']
 tickers = [asset['symbol'] for asset in result if asset['symbol'].endswith('USDT')]
 app.logger.info(tickers)
 
-mysymbol = "BTCUSDT"
-interval = 60
-
 def calculateCrossSections():
     global krogci_x, krogci_y, mysymbol
     krogci_x=[]
@@ -180,7 +170,7 @@ def calculateCrossSections():
                 
                 text_data = text_data + \
                         'time:  ' + time + '\n' + \
-                        'price: ' + str(inter[1]) + '\n\n'
+                        'price: ' + locale.format_string("%d", inter[1], grouping=True) + ' $USD/BTC\n\n'
                       
             
     if text_data!='':
