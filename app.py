@@ -310,7 +310,7 @@ def repeatPullNewData():
     global currentHour
     if dt.datetime.now().hour != currentHour:
         currentHour = dt.datetime.now().hour
-        app.logger.info("beep - hour changed" , str(currentHour))    
+        app.logger.info("beep - hour changed: " + str(currentHour))    
         start = get_last_timestamp(df)
         pullNewData(mysymbol, start, interval)
     

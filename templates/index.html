@@ -128,6 +128,9 @@ myplot.on('plotly_relayout', (event) => {
 	        krogci.y = myJson['krogci_y'];
 	        
 	        Plotly.redraw('plot_div');
+	        
+	        var div = document.getElementById('text_div');
+	        div.innerHTML += 'Length received: ' + trace1.y.length;
 	    }
 	}					
 
