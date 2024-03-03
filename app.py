@@ -168,6 +168,9 @@ def calculateCrossSections():
                 krogci_x.append(time)
                 krogci_y.append(inter[1])
                 
+                if text_data=='':
+                    text_data = "data from https://crypto.zhivko.eu/";
+                
                 text_data = text_data + \
                         'time:  ' + time + '\n' + \
                         'price: ' + locale.format_string("%d", inter[1], grouping=True) + ' $USD/BTC\n\n'
