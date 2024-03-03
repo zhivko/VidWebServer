@@ -29,7 +29,7 @@ function listboxKeyDown(e)
 	        	shapes.splice(i,1);
 	        	
 	        	var http = new XMLHttpRequest();
-	        	var url = "/deleteLine?line_no=" + i;
+	        	var url = "/deleteLine?name=" + selectedValue;
 	    		http.open("POST", url, true);
 	    		http.setRequestHeader("Content-type", "application/json; charset=utf-8");
 	    		http.send(JSON.stringify(shapes));

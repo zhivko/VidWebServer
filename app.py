@@ -368,10 +368,10 @@ def scroll():
 
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
-    line_no = request.args.get('line_no')
+    line_name = request.args.get('name')
     needsWrite=False
     for crta in crte:
-        if crta.i == int(line_no):
+        if crta.ime == line_name:
             needsWrite=True
             crte.remove(crta);
 
