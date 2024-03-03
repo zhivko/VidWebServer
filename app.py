@@ -326,12 +326,15 @@ def get_plot_data():
     #x = df['timestamp'].index.astype("str").tolist()
     howmany = 1000
     x = df.tail(howmany).index.astype("str").tolist()
-    y = df.tail(howmany)['close'].astype(float).tolist()
+    open_ = df.tail(howmany)['open'].astype(float).tolist()
+    high = df.tail(howmany)['high'].astype(float).tolist()
+    low = df.tail(howmany)['low'].astype(float).tolist()
+    close = df.tail(howmany)['close'].astype(float).tolist()
     volume = df.tail(howmany)['volume'].astype(float).tolist()
     lines = [];
     for crta in crte:
         lines.append(crta.plotlyLine());
-    return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}
+    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}
     
 
 @app.errorhandler(Exception)
@@ -348,12 +351,16 @@ def scroll():
     df_range = df.loc[pd.Timestamp(contentJson['xaxis.range[0]']):pd.Timestamp(contentJson['xaxis.range[1]'])]
     
     x = df_range.index.astype("str").tolist()
-    y = df_range['close'].astype(float).tolist()
+    open_ = df_range['open'].astype(float).tolist()
+    high = df_range['high'].astype(float).tolist()
+    low = df_range['low'].astype(float).tolist()
+    close = df_range['close'].astype(float).tolist()
     volume = df_range['volume'].astype(float).tolist()
     lines = [];
     for crta in crte:
         lines.append(crta.plotlyLine());
-    return {'x_axis': x, 'y_axis': y, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}, 200    
+    
+    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}, 200
     
 
 @app.route('/addLine', methods=['POST'])

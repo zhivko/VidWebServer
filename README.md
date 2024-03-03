@@ -10,6 +10,7 @@ https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 ## To start server enter following line in command line
 
 ```
+sudo apt install locales-all
 sudo apt install gunicorn
 sudo apt install certbot python3-certbot-nginx
 ```

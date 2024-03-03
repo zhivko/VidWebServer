@@ -24,9 +24,19 @@ var krogci = {
 	    
 };
 var trace1 = {
-	    type: 'scatter',
 	    x: {{ plot_data.x_axis }} ,
-	    y: {{ plot_data.y_axis }} ,
+//	    y: {{ plot_data.y_axis }} ,
+	    
+	    open: {{ plot_data.open }} ,
+	    high: {{ plot_data.high }} ,
+	    low: {{ plot_data.low }} ,
+	    close: {{ plot_data.close }} ,
+
+	    type: 'ohlc',
+
+	    increasing: {line: {color: 'green'}},
+	    decreasing: {line: {color: 'red'}},	    
+	    
 	    name: '{{ plot_data.title }}',
         showlegend: true
 	    
@@ -55,6 +65,7 @@ var layout = {
         },
     showlegend: true,
     autoscale: true,
+    clickmode: "event+select",
     
     xaxis: {
         title: 'Time',
@@ -95,8 +106,9 @@ var config = {
 		    scale: 1, // Multiply title/legend/axis/canvas sizes by this factor
 		    
 		  },
-		  editable: true,
-		  modeBarButtonsToAdd: ["drawline"]
+		  editable: false,
+		  //edits:{'shapePosition': false},
+		  modeBarButtonsToAdd: ["drawline", "eraseshape"]
 		  };
 
 
@@ -110,27 +122,33 @@ myplot.on('plotly_relayout', (event) => {
 	var http = new XMLHttpRequest();
 	http.onreadystatechange = function() {
 	    if(http.readyState == 4 && http.status == 200) {
-			var myJson = JSON.parse(http.responseText);
-			/*
-			for (var key in myJson) {
-			    if (myJson.hasOwnProperty(key)) {
-			        console.log(key + " -> " + myJson[key]);
-			    }
-			}
-			*/
-	        trace1.x = myJson['x_axis'];
-	        trace1.y = myJson['y_axis'];
-	        
-	        traceVolume.x = myJson['x_axis'];
-	        traceVolume.y = myJson['volume'];
-	        
-	        krogci.x = myJson['krogci_x'];
-	        krogci.y = myJson['krogci_y'];
-	        
-	        Plotly.redraw('plot_div');
-	        
-	        var div = document.getElementById('text_div');
-	        div.innerHTML += 'Length received: ' + trace1.y.length;
+	    	if(http.responseText.includes("{"))
+    		{
+				var myJson = JSON.parse(http.responseText);
+				/*
+				for (var key in myJson) {
+				    if (myJson.hasOwnProperty(key)) {
+				        console.log(key + " -> " + myJson[key]);
+				    }
+				}
+				*/
+		        trace1.x = myJson['x_axis'];
+		        trace1.open = myJson['open'];
+		        trace1.high = myJson['high'];
+		        trace1.low = myJson['low'];
+		        trace1.close = myJson['close'];
+		        
+		        traceVolume.x = myJson['x_axis'];
+		        traceVolume.y = myJson['volume'];
+		        
+		        krogci.x = myJson['krogci_x'];
+		        krogci.y = myJson['krogci_y'];
+		        
+		        Plotly.redraw('plot_div');
+		        
+		        var div = document.getElementById('text_div');
+		        div.innerHTML += 'Length received: ' + trace1.y.length;
+	        }
 	    }
 	}					
 
