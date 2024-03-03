@@ -169,7 +169,7 @@ def calculateCrossSections():
                 krogci_y.append(inter[1])
                 
                 if text_data=='':
-                    text_data = "data from https://crypto.zhivko.eu/"
+                    text_data = "data from https://crypto.zhivko.eu\n"
                 
                 text_data = text_data + \
                         'time:  ' + time + '\n' + \

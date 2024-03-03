@@ -9,9 +9,46 @@
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <div id="plot_div" style="width: 80%; height: 100%; float: left;"></div>
+<div id="lines_div" style="width: 20%; height: 50%; float: right;">
+	<select name="list_box_crte" size="8" multiple="multiple" onchange="myCrteChangeEvent();">
+	</select>
+</div>
 <div id="text_div" style="width: 20%; height: 100%; float: right;"></div>
 
+
 <script type="text/javascript">
+
+function myCrteChangeEvent()
+{
+	var selectedValue = document.getElementsByName('list_box_crte')[0].value;
+	console.log(selectedValue);
+    for(let i=0; i<shapes.length; i++)
+	{
+        if(shapes[i].name == selectedValue)
+       		shapes[i].line.color = "#FF0000";
+        else
+        	shapes[i].line.color = "#000000";
+	}
+    Plotly.redraw('plot_div');
+}
+
+
+function refreshCrteLb()
+{
+	let listbox_crte = document.getElementsByName('list_box_crte')[0];
+	var i, L = listbox_crte.options.length - 1;
+	for(i = L; i >= 0; i--) {
+		listbox_crte.remove(i);
+	}
+	
+	for(let i=0; i<shapes.length; i++)
+	{
+	    var opt = document.createElement("option");
+	    opt.text = shapes[i].name;
+	    opt.value = shapes[i].name;
+	    listbox_crte.options.add(opt); 
+	}
+}
 
 {% autoescape false %}
 var krogci = {
@@ -113,6 +150,7 @@ var config = {
 
 
 Plotly.newPlot("plot_div", data, layout, config);
+refreshCrteLb();
 var myplot= document.getElementById("plot_div");
 var text_div= document.getElementById("text_div");
 myplot.on('plotly_relayout', (event) => {
@@ -147,7 +185,9 @@ myplot.on('plotly_relayout', (event) => {
 		        Plotly.redraw('plot_div');
 		        
 		        var div = document.getElementById('text_div');
-		        div.innerHTML += 'Length received: ' + trace1.y.length;
+		        div.innerHTML += 'Length received: ' + trace1.x.length;
+		        
+				refreshCrteLb();
 	        }
 	    }
 	}					
