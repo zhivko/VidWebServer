@@ -366,6 +366,22 @@ def scroll():
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}, 200
     
 
+@app.route('/deleteLine', methods=['POST'])
+def deleteLine():
+    line_no = request.args.get('line_no')
+    needsWrite=False
+    for crta in crte:
+        if crta.i == int(line_no):
+            needsWrite=True
+            crte.remove(crta);
+
+    if needsWrite:
+        with open(crtePath,'w') as f:
+            strJson = jsonpickle.encode(crte, indent=2)
+            f.write(strJson)    
+    
+    return "ok", 200
+
 @app.route('/addLine', methods=['POST'])
 def addLine():
     contentJson = request.json

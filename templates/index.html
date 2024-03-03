@@ -10,13 +10,31 @@
 
 <div id="plot_div" style="width: 80%; height: 100%; float: left;"></div>
 <div id="lines_div" style="width: 20%; height: 50%; float: right;">
-	<select name="list_box_crte" size="8" multiple="multiple" onchange="myCrteChangeEvent();">
+	<select name="list_box_crte" size="8" multiple="multiple" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);">
 	</select>
 </div>
 <div id="text_div" style="width: 20%; height: 100%; float: right;"></div>
 
 
 <script type="text/javascript">
+
+function listboxKeyDown(e)
+{
+	var selectedValue = document.getElementsByName('list_box_crte')[0].value;
+	if(e.key == "Delete")
+	    for(let i=0; i<shapes.length; i++)
+		{
+	        if(shapes[i].name == selectedValue)
+        	{
+	        	var http = new XMLHttpRequest();
+	        	var url = "/deleteLine?line_no=" + i;
+	    		http.open("POST", url, true);
+	    		http.setRequestHeader("Content-type", "application/json; charset=utf-8");
+	    		http.send(JSON.stringify(shapes));
+	        	break;
+        	}
+		}
+}
 
 function myCrteChangeEvent()
 {
@@ -143,7 +161,7 @@ var config = {
 		    scale: 1, // Multiply title/legend/axis/canvas sizes by this factor
 		    
 		  },
-		  editable: false,
+		  editable: true,
 		  //edits:{'shapePosition': false},
 		  modeBarButtonsToAdd: ["drawline", "eraseshape"]
 		  };
@@ -224,7 +242,7 @@ myplot.on('plotly_relayout', (event) => {
     else
     {
     	eventStr = JSON.stringify(event)
-    	if(eventStr.includes("shapes[0]"))
+    	if(eventStr.includes("shapes"))
     	{
         	var url = "/addLine";
     		http.open("POST", url, true);
