@@ -26,12 +26,17 @@ function listboxKeyDown(e)
 		{
 	        if(shapes[i].name == selectedValue)
         	{
+	        	shapes.splice(i,1);
+	        	
 	        	var http = new XMLHttpRequest();
 	        	var url = "/deleteLine?line_no=" + i;
 	    		http.open("POST", url, true);
 	    		http.setRequestHeader("Content-type", "application/json; charset=utf-8");
 	    		http.send(JSON.stringify(shapes));
-	        	break;
+	        	
+	    		Plotly.redraw('plot_div');
+	    		
+	    		break;
         	}
 		}
 }
