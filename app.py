@@ -316,9 +316,11 @@ repeatPullNewData()
 
 
 def getCrtaWithIndex(index, crte: List[Crta]):
+    i=0
     for crta in crte:
-        if crta.i==index:
+        if i==index:
             return crta
+        i=i+1
 
 
 def get_plot_data():
