@@ -77,6 +77,7 @@ def gmail(message):
 
 
     try:
+        app.logger.info('sending email...')
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.ehlo()
         server.starttls()
@@ -90,7 +91,7 @@ def gmail(message):
         
         server.send_message(message)
         server.close()
-        app.logger.info('successfully sent the mail')
+        app.logger.info('sending email...Done.')
     except:
         app.logger.error("failed to send mail")
         app.logger.error(traceback.format_exc())
