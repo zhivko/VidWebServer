@@ -9,11 +9,11 @@
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <div id="plot_div" style="width: 80%; height: 100%; float: left;"></div>
-<div id="lines_div" style="width: 20%; height: 50%; float: right;">
+<div id="lines_div" style="width: 20%; height: 80%; float: right;">
 	<select name="list_box_crte" size="8" multiple="multiple" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);">
 	</select>
 </div>
-<div id="text_div" style="width: 20%; height: 100%; float: right;"></div>
+<div id="text_div" style="width: 20%; height: 20%; float: right;"></div>
 
 
 <script type="text/javascript">
@@ -85,7 +85,6 @@ var krogci = {
 };
 var trace1 = {
 	    x: {{ plot_data.x_axis }} ,
-//	    y: {{ plot_data.y_axis }} ,
 	    
 	    open: {{ plot_data.open }} ,
 	    high: {{ plot_data.high }} ,
@@ -113,7 +112,6 @@ var traceVolume= {
         
 };
 var shapes = {{ plot_data.lines }}
-{% endautoescape %}
 
 var layout = {
 	shapes: shapes,
@@ -130,7 +128,7 @@ var layout = {
     xaxis: {
         title: 'Time',
         autorange: false,
-        range: ["2024-02-01", "2024-03-01"]
+        range: ['{{ plot_data.range_start }}', '{{ plot_data.range_end }}']
     },
     yaxis: {
     	autorange: true,
@@ -154,6 +152,8 @@ var layout = {
         pad: 4
     }
 };
+{% endautoescape %}
+
 var data = [trace1, traceVolume, krogci];
 var config = {
 		  scrollZoom: true,
@@ -172,9 +172,13 @@ var config = {
 		  };
 
 
-Plotly.newPlot("plot_div", data, layout, config);
+Plotly.newPlot("plot_div", data, layout, config) ;
 refreshCrteLb();
 var myplot= document.getElementById("plot_div");
+
+
+	
+
 var text_div= document.getElementById("text_div");
 myplot.on('plotly_relayout', (event) => {
 	console.log(event);

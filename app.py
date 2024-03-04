@@ -238,6 +238,7 @@ else:
     f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
     df.index = df.timestamp.apply(f)
 
+print(df)
 app.logger.info(df)
 
 
@@ -340,7 +341,9 @@ def get_plot_data():
     lines = [];
     for crta in crte:
         lines.append(crta.plotlyLine());
-    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}
+    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 
+            'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y,
+            'range_start': df.iloc[-int(howmany/2)].name, 'range_end': df.iloc[-1].name}
     
 
 @app.errorhandler(Exception)
