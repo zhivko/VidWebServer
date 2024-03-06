@@ -178,7 +178,6 @@ var myplot= document.getElementById("plot_div");
 
 	
 
-var text_div= document.getElementById("text_div");
 myplot.on('plotly_relayout', (event) => {
 	console.log(event);
 	
@@ -210,8 +209,7 @@ myplot.on('plotly_relayout', (event) => {
 		        
 		        Plotly.redraw('plot_div');
 		        
-		        var div = document.getElementById('text_div');
-		        div.innerHTML += 'Length received: ' + trace1.x.length;
+		        console.log('Length received: ' + trace1.x.length);
 		        
 				refreshCrteLb();
 	        }
@@ -227,19 +225,13 @@ myplot.on('plotly_relayout', (event) => {
 
         	console.log(event["shapes"].slice(-1));
             if(event["shapes"].slice(-1)[0].type=='line'){
-					var esp=document.createElement("span");
-					text_div.appendChild(esp);
-					
 					var x0 = event["shapes"].slice(-1)[0].x0;
 					var x1 = event["shapes"].slice(-1)[0].x1;
 					var y0 = event["shapes"].slice(-1)[0].y0;
 					var y1 = event["shapes"].slice(-1)[0].y1;
 					
-					text_div.innerHTML += "x0:"+x0+" y0:"+y0+" x1:"+x1+" y1:"+y1 + "\n";
 					const crta = {x0: x0, y0: y0, x1: x1, y1:y1};
 					http.send(JSON.stringify(event["shapes"].slice(-1)[0]));
-					//tole zbrise vse crte
-					//Plotly.relayout(myplot, { shapes: [] });
            	}
             else
             {
