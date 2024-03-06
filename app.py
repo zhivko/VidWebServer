@@ -4,7 +4,7 @@
 #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
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, redirect, render_template, request, send_from_directory
 from flask_debug import Debug
 import os.path
 import traceback
@@ -21,6 +21,7 @@ from pybit.unified_trading import WebSocket
 
 import pandas as pd
 import datetime as dt
+from datetime import timedelta
 import time, threading
 import json
 import jsonpickle
@@ -146,11 +147,29 @@ result = session.get_tickers(category="linear").get('result')['list']
 tickers = [asset['symbol'] for asset in result if asset['symbol'].endswith('USDT')]
 app.logger.info(tickers)
 
+def sendMailForLastCrossSections():
+    i=0;
+    text_data='';
+    for x in krogci_x:
+        text_data = text_data + \
+                'time:  ' + krogci_x[i] + '\n' + \
+                'price: ' + '{:0,.2f}'.format(krogci_y[i]) + ' $USD/BTC\n\n'
+        i=i+1;
+                      
+            
+    if text_data!='':
+        text = 'https://crypto.zhivko.eu\n';
+        text = text + 'Crossing happened for ' + mysymbol + '\n'
+        text = text + text_data
+        message = MIMEMultipart("alternative")
+        part1 = MIMEText(text, "plain")
+        message.attach(part1)
+        gmail(message)    
+
 def calculateCrossSections():
     global krogci_x, krogci_y, mysymbol
     krogci_x=[]
     krogci_y=[]
-    text_data = ''
     for index, row in df.tail(100).iterrows():
         loc = df.index.get_loc(row.name)
         line1 = (
@@ -168,21 +187,7 @@ def calculateCrossSections():
                 time = dt.datetime.utcfromtimestamp(int(inter[0])/1000).strftime("%Y-%m-%d %H:%M:%S")
                 krogci_x.append(time)
                 krogci_y.append(inter[1])
-                
-                if text_data=='':
-                    text_data = "data from https://crypto.zhivko.eu\n"
-                
-                text_data = text_data + \
-                        'time:  ' + time + '\n' + \
-                        'price: ' + '{:0,.2f}'.format(inter[1]) + ' $USD/BTC\n\n'
-                      
-            
-    if text_data!='':
-        text =  'Crossing happened for ' + mysymbol + '\n' + text_data
-        message = MIMEMultipart("alternative")
-        part1 = MIMEText(text, "plain")
-        message.attach(part1)
-        gmail(message)
+
         
 
 def pullNewData(mysymbol, start, interval):
@@ -219,6 +224,7 @@ def pullNewData(mysymbol, start, interval):
         app.logger.info("Saved to csv.")
         
         calculateCrossSections()
+        sendMailForLastCrossSections()
 
 
 def get_last_timestamp(df):
@@ -343,12 +349,12 @@ def get_plot_data():
         lines.append(crta.plotlyLine());
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 
             'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y,
-            'range_start': df.iloc[-int(howmany/2)].name, 'range_end': df.iloc[-1].name}
+            'range_start': df.iloc[-int(howmany/2)].name, 'range_end': df.iloc[-1].name + timedelta(days=7)}
     
 
 @app.errorhandler(Exception)
 def all_exception_handler(error):
-    print(str(error))
+    app.logger.error(str(error))
     
 
 @app.route('/scroll', methods=['POST'])
@@ -382,6 +388,7 @@ def deleteLine():
             crte.remove(crta);
 
     if needsWrite:
+        calculateCrossSections();
         with open(crtePath,'w') as f:
             strJson = jsonpickle.encode(crte, indent=2)
             f.write(strJson)    
@@ -399,6 +406,7 @@ def addLine():
         crta1=Crta(len(crte), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
         crte.append(crta1)
         needsWrite=True
+        calculateCrossSections()
     elif list(contentJson.keys())[0].startswith("shapes"):
         x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
         strI = x.group(1)
@@ -415,6 +423,7 @@ def addLine():
                 crta.y1 = contentJson['shapes['+strI+'].y1']
             needsWrite=True
             calculateCrossSections()
+            return get_plot_data(), 200
         else:
             app.logger.info("Did not find crta: " + intI)
     else:
