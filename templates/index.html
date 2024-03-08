@@ -77,8 +77,15 @@ var krogci = {
 	    type: 'scatter',
 	    x: {{ plot_data.krogci_x }} ,
 	    y: {{ plot_data.krogci_y }} ,
-	    marker: { size: 12 },
-        showlegend: true
+	    marker: {
+	        color: 'rgba(17, 157, 255,0.5)',
+	        size: 14,
+	        line: {
+	          color: 'rgb(231, 99, 250)',
+	          width: 2
+	        }
+	      },
+        showlegend: false
 	    
 };
 var trace1 = {
@@ -89,7 +96,7 @@ var trace1 = {
 	    low: {{ plot_data.low }} ,
 	    close: {{ plot_data.close }} ,
 
-	    type: 'ohlc',
+	    type: 'candlestick',
 
 	    increasing: {line: {color: 'green'}},
 	    decreasing: {line: {color: 'red'}},	    

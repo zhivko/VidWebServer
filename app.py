@@ -173,8 +173,9 @@ def calculateCrossSections():
     for index, row in df.tail(100).iterrows():
         loc = df.index.get_loc(row.name)
         line1 = (
-                (df.iloc[loc].timestamp, df.iloc[loc].close),
-                (df.iloc[loc-1].timestamp, df.iloc[loc-1].close),
+                (df.iloc[loc].timestamp, df.iloc[loc].low),
+                (df.iloc[loc].timestamp, df.iloc[loc].high),
+                #(df.iloc[loc-1].timestamp, df.iloc[loc-1].close),
                 )
         for crta in crte:
             line2 = (
