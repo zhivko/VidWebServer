@@ -14,7 +14,8 @@ import re
 from intersect import line_intersection, crosses
 import logging
 import locale
-
+from shapely.geometry import LineString, Point
+import numpy as np
 
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
@@ -36,6 +37,7 @@ from email.mime.image import MIMEImage
 import smtplib
 from pathlib import Path
 from string import Template
+from numpy.distutils.fcompiler import none
 global lineCounter, df, interval, krogci_x, krogci_y
 
 
@@ -172,23 +174,14 @@ def calculateCrossSections():
     krogci_y=[]
     for index, row in df.tail(100).iterrows():
         loc = df.index.get_loc(row.name)
-        line1 = (
-                (df.iloc[loc].timestamp, df.iloc[loc].low),
-                (df.iloc[loc].timestamp, df.iloc[loc].high),
-                #(df.iloc[loc-1].timestamp, df.iloc[loc-1].close),
-                )
+        first_line = LineString([Point(df.iloc[loc].timestamp, df.iloc[loc].low), Point(df.iloc[loc].timestamp, df.iloc[loc].high)])
         for crta in crte:
-            line2 = (
-                    (crta.x0_timestamp, crta.y0),
-                    (crta.x1_timestamp, crta.y1)
-                    )
-            aliCrosses = crosses(line1,line2)
-            if aliCrosses:
-                inter = line_intersection(line1,line2)
-                time = dt.datetime.utcfromtimestamp(int(inter[0])/1000).strftime("%Y-%m-%d %H:%M:%S")
+            second_line = LineString([Point(crta.x0_timestamp, crta.y0),Point(crta.x1_timestamp, crta.y1)])
+            if first_line.intersects(second_line):
+                intersection = first_line.intersection(second_line)
+                time = dt.datetime.utcfromtimestamp(int(intersection.coords[0][0])/1000).strftime("%Y-%m-%d %H:%M:%S")
                 krogci_x.append(time)
-                krogci_y.append(inter[1])
-
+                krogci_y.append(intersection.coords[0][1])
         
 
 def pullNewData(mysymbol, start, interval):

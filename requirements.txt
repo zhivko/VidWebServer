@@ -8,3 +8,4 @@ matplotlib
 jsonpickle
 pyopenssl
 werkzeug
+shapely
