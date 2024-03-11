@@ -7,6 +7,7 @@
 from flask import Flask, redirect, render_template, request, send_from_directory
 from flask_debug import Debug
 import os.path
+import pathlib
 import traceback
 import sys
 from Crta import Crta
@@ -38,32 +39,38 @@ import smtplib
 from pathlib import Path
 from string import Template
 from numpy.distutils.fcompiler import none
-global lineCounter, df, interval, krogci_x, krogci_y
+#from pandas.conftest import datapath
+global lineCounter, dfs, interval, crteD
 
-
-lineCounter=0
-krogci_x=[]
-krogci_y=[]
-mysymbol = "BTCUSDT"
-interval = 60
-locale.setlocale(locale.LC_ALL, 'sl_SI')
+crteD = dict()
+dfs = dict()
 
 app = Flask(__name__,
             static_folder='./static',
             template_folder='./templates')
 
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+else:
+    app.logger.setLevel(logging.INFO)  # Set log level to INFO
+    #handler = logging.FileHandler('app.log')  # Log to a file
+    handlerConsole = logging.StreamHandler(sys.stdout)
+    #app.logger.addHandler(handler)
+    app.logger.addHandler(handlerConsole)
+
+
+symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT'}
+
+lineCounter=0
+dfs={}
+interval = 60
+locale.setlocale(locale.LC_ALL, 'sl_SI')
 
 jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
 
 #crte = Crta[]
-crtePath = "crte.data"
-crte: List[Crta] = []
-print (os.path.abspath("crte.data"))
-if os.path.isfile(crtePath):
-    with open(crtePath, 'r') as f:
-        json_str = f.read()
-        crte = jsonpickle.decode(json_str)
-
 
 with open("./authcreds.json") as j:
     creds = json.load(j)
@@ -73,8 +80,8 @@ geslo = creds['geslo']
 
 
 
-def gmail(message):
-    global creds, mysymbol
+def gmail(message, symbol):
+    global creds
     gmailEmail = creds['gmailEmail']
     gmailPwd = creds['gmailPwd']
 
@@ -87,7 +94,7 @@ def gmail(message):
         server.login(gmailEmail,gmailPwd)
         #server.set_debuglevel(1)
         
-        message["Subject"] = mysymbol
+        message["Subject"] = symbol
         message["From"] = gmailEmail
         
         message["To"] = creds['emailTo'] #', '.join(["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"])
@@ -139,17 +146,31 @@ def format_data(response):
     data.index = data.timestamp.apply(f)
     return data[::-1].apply(pd.to_numeric)
 
-
+def getDataPath(symbol):
+        path = pathlib.Path("." + os.sep + symbol).resolve()
+        if not (os.path.isdir(path)):
+            os.mkdir(path, mode = 0o777)
+            app.logger.info("Directory '% s' created" % path)
+        return os.path.realpath(path);
 
 session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
-
-
 result = session.get_tickers(category="linear").get('result')['list']
-
-tickers = [asset['symbol'] for asset in result if asset['symbol'].endswith('USDT')]
+tickers = [asset['symbol'] for asset in result if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
 app.logger.info(tickers)
+tickers_data=""
+for symbol in symbols:
+    crtePath = getDataPath(symbol) + os.sep + "crte.data"
+    app.logger.info(crtePath)
+    if os.path.isfile(crtePath):
+        with open(crtePath, 'r') as f:
+            json_str = f.read()
+            crte = jsonpickle.decode(json_str)
+            crteD[symbol] = crte
+    else:
+        crte: List[Crta] = []
+        crteD[symbol] = crte
 
-def sendMailForLastCrossSections():
+def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
     i=0;
     text_data='';
     for x in krogci_x:
@@ -161,39 +182,42 @@ def sendMailForLastCrossSections():
             
     if text_data!='':
         text = 'https://crypto.zhivko.eu\n';
-        text = text + 'Crossing happened for ' + mysymbol + '\n'
+        text = text + 'Crossing happened for ' + symbol + '\n'
         text = text + text_data
         message = MIMEMultipart("alternative")
         part1 = MIMEText(text, "plain")
         message.attach(part1)
-        gmail(message)    
+        gmail(message, symbol)
 
-def calculateCrossSections():
-    global krogci_x, krogci_y, mysymbol
+def calculateCrossSections(symbol):
     krogci_x=[]
     krogci_y=[]
-    for index, row in df.tail(100).iterrows():
-        loc = df.index.get_loc(row.name)
-        first_line = LineString([Point(df.iloc[loc].timestamp, df.iloc[loc].low), Point(df.iloc[loc].timestamp, df.iloc[loc].high)])
-        for crta in crte:
+    for index, row in dfs[symbol].tail(100).iterrows():
+        loc = dfs[symbol].index.get_loc(row.name)
+        first_line = LineString([Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].low), Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].high)])
+        for crta in crteD[symbol]:
             second_line = LineString([Point(crta.x0_timestamp, crta.y0),Point(crta.x1_timestamp, crta.y1)])
             if first_line.intersects(second_line):
                 intersection = first_line.intersection(second_line)
                 time = dt.datetime.utcfromtimestamp(int(intersection.coords[0][0])/1000).strftime("%Y-%m-%d %H:%M:%S")
                 krogci_x.append(time)
                 krogci_y.append(intersection.coords[0][1])
-        
+    return krogci_x, krogci_y
 
-def pullNewData(mysymbol, start, interval):
-    global df
+
+def pullNewData(symbol, start, interval):
+    global dfs
     added = False
+    
+    dataPath = getDataPath(symbol) + os.sep + symbol + '.data'
+    
     while True:
         app.logger.info(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
-            ' Collecting data from ' + \
+            ' Collecting data for: ' + symbol + ' from ' + \
             dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
 
         response = session.get_kline(category='linear', 
-                                     symbol=mysymbol, 
+                                     symbol=symbol, 
                                      start=start,
                                      interval=interval).get('result')
         
@@ -202,44 +226,32 @@ def pullNewData(mysymbol, start, interval):
         if not isinstance(latest, pd.DataFrame):
             break
         
-        start = get_last_timestamp(latest)
+        start = latest.timestamp[-1:].values[0]
         
         time.sleep(0.1)
         
-        df = pd.concat([df, latest])
+        if not symbol in dfs.keys():
+            dfs[symbol] = latest
+        else:
+            dfs[symbol] = pd.concat([dfs[symbol], latest])
+        
         added=True
         app.logger.info("Appended data.")
         if len(latest) == 1:
             break
     
     if added:
-        df.drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
-        df.to_csv(dataPath)
+        dfs.get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
+        dfs.get(symbol).to_csv(dataPath)
+        
         app.logger.info("Saved to csv.")
-        
-        calculateCrossSections()
-        sendMailForLastCrossSections()
 
 
-def get_last_timestamp(df):
-    return int(df.timestamp[-1:].values[0])
+def get_last_timestamp(symbol):
+    if not symbol in dfs.keys():
+        return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
 
-dataPath = mysymbol + '.data'
-if not os.path.isfile(dataPath):
-    start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-    df = pd.DataFrame()
-        
-    pullNewData(mysymbol, start, interval)
-
-else:
-    df=pd.read_csv(dataPath)
-    df = df.drop(['timestamp'], axis=1)
-    df = df.rename(columns={"timestamp.1": "timestamp"})
-    f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-    df.index = df.timestamp.apply(f)
-
-print(df)
-app.logger.info(df)
+    return int(dfs.get(symbol).timestamp[-1:].values[0])
 
 
 
@@ -302,12 +314,28 @@ ws.kline_stream(
 
 currentHour = 0
 def repeatPullNewData():
-    global currentHour
+    global currentHour, symbols
     if dt.datetime.now().hour != currentHour:
         currentHour = dt.datetime.now().hour
-        app.logger.info("beep - hour changed: " + str(currentHour))    
-        start = get_last_timestamp(df)
-        pullNewData(mysymbol, start, interval)
+        app.logger.info("beep - hour changed: " + str(currentHour))
+        for symbol in symbols:
+            dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
+            if not symbol in dfs.keys():
+                if os.path.isfile(dataPath):
+                    dfs[symbol] = pd.read_csv(dataPath)
+                    dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
+                    dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
+                    f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+                    dfs[symbol].index = dfs[symbol].timestamp.apply(f)            
+            
+            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+            if symbol in dfs.keys():
+                start = get_last_timestamp(symbol)
+            pullNewData(symbol, start, interval)
+            
+            krogci_x, krogci_y = calculateCrossSections(symbol)
+            sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
+
     
     threading.Timer(5, repeatPullNewData).start()
     
@@ -317,47 +345,58 @@ repeatPullNewData()
 
 
 
-def getCrtaWithIndex(index, crte: List[Crta]):
+def getCrtaWithIndex(index, symbol):
     i=0
-    for crta in crte:
+    for crta in crteD[symbol]:
         if i==index:
             return crta
         i=i+1
 
 
-def get_plot_data():
+def getPlotData(symbol):
+    global crteD
     #df['time'] = df['timestamp'].apply(lambda x: str(x)[14:4])
     #f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
     #df['time'] = df['timestamp'].apply(f)
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
     howmany = 1000
-    x = df.tail(howmany).index.astype("str").tolist()
-    open_ = df.tail(howmany)['open'].astype(float).tolist()
-    high = df.tail(howmany)['high'].astype(float).tolist()
-    low = df.tail(howmany)['low'].astype(float).tolist()
-    close = df.tail(howmany)['close'].astype(float).tolist()
-    volume = df.tail(howmany)['volume'].astype(float).tolist()
+    x = dfs[symbol].tail(howmany).index.astype("str").tolist()
+    open_ = dfs[symbol].tail(howmany)['open'].astype(float).tolist()
+    high = dfs[symbol].tail(howmany)['high'].astype(float).tolist()
+    low = dfs[symbol].tail(howmany)['low'].astype(float).tolist()
+    close = dfs[symbol].tail(howmany)['close'].astype(float).tolist()
+    volume = dfs[symbol].tail(howmany)['volume'].astype(float).tolist()
     lines = [];
-    for crta in crte:
+    for crta in crteD[symbol]:
         lines.append(crta.plotlyLine());
+    
+    krogci_x, krogci_y = calculateCrossSections(symbol)
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 
-            'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y,
-            'range_start': df.iloc[-int(howmany/2)].name, 'range_end': df.iloc[-1].name + timedelta(days=7)}
+            'title': symbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y,
+            'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + timedelta(days=7)
+            }
     
 
 @app.errorhandler(Exception)
 def all_exception_handler(error):
     app.logger.error(str(error))
+    app.logger.error(traceback.format_exc())
     
 
 @app.route('/scroll', methods=['POST'])
 def scroll():
+    global crteD
+    
+    symbol = request.args.get('pair')
+    if symbol==None:
+        symbol = "BTCUSDT"
+        
     contentJson = request.json
     app.logger.info(contentJson)
     
 
-    df_range = df.loc[pd.Timestamp(contentJson['xaxis.range[0]']):pd.Timestamp(contentJson['xaxis.range[1]'])]
+    df_range = dfs[symbol].loc[pd.Timestamp(contentJson['xaxis.range[0]']):pd.Timestamp(contentJson['xaxis.range[1]'])]
     
     x = df_range.index.astype("str").tolist()
     open_ = df_range['open'].astype(float).tolist()
@@ -366,46 +405,75 @@ def scroll():
     close = df_range['close'].astype(float).tolist()
     volume = df_range['volume'].astype(float).tolist()
     lines = [];
-    for crta in crte:
+    for crta in crteD[symbol]:
         lines.append(crta.plotlyLine());
     
-    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': mysymbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}, 200
+    krogci_x, krogci_y = calculateCrossSections(symbol)
+    
+    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}, 200
     
 
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
+    symbol = request.args.get('pair')
+    if symbol==None:
+        symbol = "BTCUSDT"
+            
     line_name = request.args.get('name')
     needsWrite=False
-    for crta in crte:
+    for crta in crteD[symbol]:
         if crta.ime == line_name:
             needsWrite=True
-            crte.remove(crta);
+            crteD[symbol].remove(crta);
+
+    crtePath = getDataPath(symbol) + os.sep + "crte.data"
 
     if needsWrite:
         calculateCrossSections();
         with open(crtePath,'w') as f:
-            strJson = jsonpickle.encode(crte, indent=2)
+            strJson = jsonpickle.encode(crteD[symbol], indent=2)
             f.write(strJson)    
     
     return "ok", 200
 
+def writeCrte(symbol):
+    crtePath = getDataPath(symbol) + os.sep + "crte.data"
+    try:
+        with open(crtePath,'w') as f:
+            strJson = jsonpickle.encode(crteD[symbol], indent=2)
+            f.write(strJson)
+             
+    except:
+        if os.path.isfile(crtePath):        
+            os.remove(crtePath)
+        app.logger.error(traceback.format_exc())
+        # or
+        app.logger.info(sys.exc_info()[2])      
+
+
 @app.route('/addLine', methods=['POST'])
 def addLine():
+    global crteD
+    symbol = request.args.get('pair')
+    if symbol==None:
+        symbol = "BTCUSDT"
+            
     contentJson = request.json
     app.logger.info(contentJson)
 
-    needsWrite=False
+    crtePath = getDataPath(symbol) + os.sep + "crte.data"
     
     if 'type' in contentJson.keys() and contentJson['type']=='line':
         crta1=Crta(len(crte), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
-        crte.append(crta1)
-        needsWrite=True
-        calculateCrossSections()
+        
+        crteD[symbol].append(crta1)
+        writeCrte(symbol)
+        calculateCrossSections(symbol)
     elif list(contentJson.keys())[0].startswith("shapes"):
         x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
         strI = x.group(1)
         intI=int(strI)
-        crta = getCrtaWithIndex(intI, crte)
+        crta = getCrtaWithIndex(intI, crteD[symbol])
         if not crta is None:
             if 'shapes['+strI+'].x0' in list(contentJson.keys()):
                 crta.x0 = contentJson['shapes['+strI+'].x0']
@@ -415,29 +483,14 @@ def addLine():
                 crta.x1 = contentJson['shapes['+strI+'].x1']
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
-            needsWrite=True
-            calculateCrossSections()
-            return get_plot_data(), 200
+            writeCrte()
+            calculateCrossSections(symbol)
+            return getPlotData(), 200
         else:
             app.logger.info("Did not find crta: " + intI)
     else:
         app.logger.info(contentJson)
 
-
-    if needsWrite:
-        try:
-            with open(crtePath,'w') as f:
-                strJson = jsonpickle.encode(crte, indent=2)
-                f.write(strJson)
-                 
-        except:
-            if os.path.isfile(crtePath):        
-                os.remove(crtePath)
-            app.logger.error(traceback.format_exc())
-            # or
-            app.logger.info(sys.exc_info()[2])           
-
-    
     return "ok", 200
 
 '''
@@ -450,19 +503,36 @@ def favicon():
 
 @app.route('/')
 def home():
-    plot_data1 = get_plot_data()
-    return render_template('./index.html', plot_data=plot_data1)
+    symbol = request.args.get('pair')
+    if(symbol == None or symbol==""):
+        symbol = "BTCUSDT"
+    
+    mydata = getDataPath(symbol) + os.sep + symbol + ".data"
+    if not os.path.isfile(mydata):
+        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        pullNewData(symbol, start, interval)
+    else:
+        dfs[symbol]=pd.read_csv(mydata)
+        dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
+        dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
+        f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+        dfs[symbol].index = dfs[symbol].timestamp.apply(f)
+    
+    print(dfs[symbol])
+    app.logger.info(dfs[symbol])
+    plot_data1 = getPlotData(symbol)
+    
+    tickers_data = ""
+    for symb in symbols:
+        tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
+    
+    return render_template('./index.html', plot_data=plot_data1, webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol})
     #return render_template_string(template,plot_data=plot_data1)
 
 
 #Debug(app)
 #app = Flask(__name__)
 #app.config['DEBUG'] = True
-
-if __name__ != '__main__':
-    gunicorn_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
 
 if __name__ == '__main__':
     app.run(host = '127.0.0.1', port = '8000', debug=True)

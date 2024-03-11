@@ -3,18 +3,32 @@
 <title>Crypto chart for: {{ plot_data.title }} V&K</title>
 <link rel="icon" href="static/favicon.ico">
 </head>
+
 <body>
 <!--<h1>This is the Index page</h1>-->
+{% autoescape false %}
 
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <div id="plot_div" style="width: 100%; height: 100%; position: relative; float: left; z-index:1000"></div>
 <div id="lines_div" style="width: 20%; float: left; position: absolute; z-index:1001; top: 10%; left: 10%;">
-	<select name="list_box_crte" size="8" multiple="multiple" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);">
+	<select name="list_box_crte" size="8" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);"></select>
+</div>
+<div id="pairs_div" style="width: 20%; float: right; position: absolute; z-index:1001; top: 10%; right: 0%;">
+	<select id="list_box_pairs" name="list_box_pairs" size="8" onchange="myPairChangeEvent();">
+	{{ webpage_data.tickers_data }}
 	</select>
 </div>
 
 <script type="text/javascript">
+document.getElementById('list_box_pairs').value = '{{ webpage_data.selectedPair }}';
+
+function myPairChangeEvent()
+{
+	var pair = document.getElementsByName('list_box_pairs')[0].value;
+	var host = window.location.protocol + "//" + window.location.host;
+	window.location.href = host+"?pair="+pair;
+}
 
 function listboxKeyDown(e)
 {
@@ -71,7 +85,7 @@ function refreshCrteLb()
 	}
 }
 
-{% autoescape false %}
+
 var krogci = {
 		mode: 'markers',
 	    type: 'scatter',
@@ -187,7 +201,7 @@ var myplot= document.getElementById("plot_div");
 
 myplot.on('plotly_relayout', (event) => {
 	console.log(event);
-	
+	var pair = document.getElementsByName('list_box_pairs')[0].value;
 	
 	var http = new XMLHttpRequest();
 	http.onreadystatechange = function() {
@@ -228,7 +242,7 @@ myplot.on('plotly_relayout', (event) => {
 	
     if ('shapes' in event) {
         if (event["shapes"].length > 0) {
-        	var url = "/addLine";
+        	var url = "/addLine?pair=" + pair;
         	http.open("POST", url, true);
         	http.setRequestHeader("Content-type", "application/json; charset=utf-8");
 
@@ -253,14 +267,14 @@ myplot.on('plotly_relayout', (event) => {
     	eventStr = JSON.stringify(event)
     	if(eventStr.includes("shapes"))
     	{
-        	var url = "/addLine";
+        	var url = "/addLine?pair=" + pair;
     		http.open("POST", url, true);
     		http.setRequestHeader("Content-type", "application/json; charset=utf-8");
     		http.send(eventStr);
     	}
     	else if(eventStr.includes("xaxis.range[0]"))
     	{
-        	var url = "/scroll";
+        	var url = "/scroll?pair=" + pair;
 			http.open("POST", url, true);
 			http.setRequestHeader("Content-type", "application/json; charset=utf-8");
     		http.send(eventStr);
