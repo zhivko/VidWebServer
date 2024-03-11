@@ -5,6 +5,7 @@
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 from flask import Flask, redirect, render_template, request, send_from_directory
+from threading import Thread
 from flask_debug import Debug
 import os.path
 import pathlib
@@ -339,10 +340,17 @@ def repeatPullNewData():
     
     threading.Timer(5, repeatPullNewData).start()
     
-repeatPullNewData()
-
-
-
+# function to create threads
+def threaded_function(arg):
+    repeatPullNewData()
+ 
+ 
+if __name__ == "__main__":
+    thread = Thread(target = threaded_function, args = ())
+    thread.start()
+    thread.join()
+    print("thread finished...exiting")
+    
 
 
 def getCrtaWithIndex(index, symbol):
@@ -499,10 +507,15 @@ def favicon():
     print(os.path.join(app.root_path, 'static'))
     return send_from_directory(app.static_folder, 'favicon.ico') 
 '''    
+def threaded_function2(symbol, start, interval):
+    pullNewData(symbol, start, interval)
+ 
+thread2 = Thread()
 
 
 @app.route('/')
 def home():
+    global thread2
     symbol = request.args.get('pair')
     if(symbol == None or symbol==""):
         symbol = "BTCUSDT"
@@ -510,7 +523,13 @@ def home():
     mydata = getDataPath(symbol) + os.sep + symbol + ".data"
     if not os.path.isfile(mydata):
         start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        pullNewData(symbol, start, interval)
+        if thread2.is_alive():
+            return "Thread for collecting data is running... Try later..."
+        else:
+            thread2 = Thread(target = threaded_function2, args = (symbol, start, interval))
+            thread2.start()
+            return "Thread for collecting data has been started... Try later..."
+        
     else:
         dfs[symbol]=pd.read_csv(mydata)
         dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
@@ -518,7 +537,6 @@ def home():
         f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
         dfs[symbol].index = dfs[symbol].timestamp.apply(f)
     
-    print(dfs[symbol])
     app.logger.info(dfs[symbol])
     plot_data1 = getPlotData(symbol)
     
