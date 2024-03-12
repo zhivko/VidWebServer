@@ -340,7 +340,7 @@ def repeatPullNewData():
     threading.Timer(5, repeatPullNewData).start()
     
 # function to create threads
-def threaded_function(arg):
+def threaded_function():
     repeatPullNewData()
  
  
@@ -447,7 +447,9 @@ def deleteLine():
     for crta in crteD[symbol]:
         if crta.ime == line_name:
             app.logger.info("Delete line with name: " + line_name + " on symbol: " + symbol)
+            app.logger.info("Length before: " + str(len(crteD[symbol])))
             crteD[symbol].remove(crta);
+            app.logger.info("Length after:  " + str(len(crteD[symbol])))
             writeCrte(symbol)
 
     app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
