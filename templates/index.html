@@ -33,6 +33,7 @@ function myPairChangeEvent()
 function listboxKeyDown(e)
 {
 	var selectedValue = document.getElementsByName('list_box_crte')[0].value;
+	var pair = document.getElementsByName('list_box_pairs')[0].value;
 	if(e.key == "Delete")
 	    for(let i=0; i<shapes.length; i++)
 		{
@@ -41,7 +42,7 @@ function listboxKeyDown(e)
 	        	shapes.splice(i,1);
 	        	
 	        	var http = new XMLHttpRequest();
-	        	var url = "/deleteLine?name=" + selectedValue;
+	        	var url = "/deleteLine?name=" + selectedValue + "&pair="+pair;
 	    		http.open("POST", url, true);
 	    		http.setRequestHeader("Content-type", "application/json; charset=utf-8");
 	    		http.send(JSON.stringify(shapes));
