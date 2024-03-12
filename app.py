@@ -192,7 +192,7 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
 def calculateCrossSections(symbol):
     krogci_x=[]
     krogci_y=[]
-    for index, row in dfs[symbol].tail(100).iterrows():
+    for index, row in dfs[symbol].tail(5).iterrows():
         loc = dfs[symbol].index.get_loc(row.name)
         first_line = LineString([Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].low), Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].high)])
         for crta in crteD[symbol]:
