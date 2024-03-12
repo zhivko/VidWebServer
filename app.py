@@ -499,7 +499,7 @@ def addLine():
                 crta.y1 = contentJson['shapes['+strI+'].y1']
             writeCrte(symbol)
             calculateCrossSections(symbol)
-            return getPlotData(), 200
+            return getPlotData(symbol), 200
         else:
             app.logger.warn("Did not find crta: " + intI)
     else:
