@@ -481,10 +481,13 @@ def addLine():
         writeCrte(symbol)
         calculateCrossSections(symbol)
     elif list(contentJson.keys())[0].startswith("shapes"):
+        app.logger.info("Correcting one line...")
         x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
         strI = x.group(1)
+        app.logger.info("Correcting one line... strI: " + strI)
         intI=int(strI)
-        crta = getCrtaWithIndex(intI, crteD[symbol])
+        app.logger.info("Correcting one line... strI: " + intI)
+        crta = getCrtaWithIndex(intI, symbol)
         if not crta is None:
             if 'shapes['+strI+'].x0' in list(contentJson.keys()):
                 crta.x0 = contentJson['shapes['+strI+'].x0']
