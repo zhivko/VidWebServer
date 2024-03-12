@@ -420,31 +420,6 @@ def scroll():
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}, 200
     
 
-@app.route('/deleteLine', methods=['POST'])
-def deleteLine():
-    symbol = request.args.get('pair')
-    if symbol==None:
-        symbol = "BTCUSDT"
-    app.logger.info("Delete line for symbol: " + symbol + "...")
-            
-    line_name = request.args.get('name')
-    needsWrite=False
-    for crta in crteD[symbol]:
-        if crta.ime == line_name:
-            needsWrite=True
-            crteD[symbol].remove(crta);
-
-    crtePath = getDataPath(symbol) + os.sep + "crte.data"
-
-    if needsWrite:
-        calculateCrossSections();
-        with open(crtePath,'w') as f:
-            strJson = jsonpickle.encode(crteD[symbol], indent=2)
-            f.write(strJson)    
-
-    app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
-    return "ok", 200
-
 def writeCrte(symbol):
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     try:
@@ -460,6 +435,23 @@ def writeCrte(symbol):
         # or
         app.logger.info(sys.exc_info()[2])      
 
+
+@app.route('/deleteLine', methods=['POST'])
+def deleteLine():
+    symbol = request.args.get('pair')
+    if symbol==None:
+        symbol = "BTCUSDT"
+    app.logger.info("Delete line for symbol: " + symbol + "...")
+            
+    line_name = request.args.get('name')
+    for crta in crteD[symbol]:
+        if crta.ime == line_name:
+            app.logger.info("Delete line with name: " + line_name + " on symbol: " + symbol)
+            crteD[symbol].remove(crta);
+            writeCrte(symbol)
+
+    app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
+    return "ok", 200
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
