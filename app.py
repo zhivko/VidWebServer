@@ -497,7 +497,7 @@ def addLine():
                 crta.x1 = contentJson['shapes['+strI+'].x1']
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
-            writeCrte()
+            writeCrte(symbol)
             calculateCrossSections(symbol)
             return getPlotData(), 200
         else:
