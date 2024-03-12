@@ -486,7 +486,7 @@ def addLine():
         strI = x.group(1)
         app.logger.info("Correcting one line... strI: " + strI)
         intI=int(strI)
-        app.logger.info("Correcting one line... strI: " + intI)
+        app.logger.info("Correcting one line... strI: " + str(intI))
         crta = getCrtaWithIndex(intI, symbol)
         if not crta is None:
             if 'shapes['+strI+'].x0' in list(contentJson.keys()):
