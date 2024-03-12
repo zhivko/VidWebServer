@@ -165,8 +165,7 @@ for symbol in symbols:
     if os.path.isfile(crtePath):
         with open(crtePath, 'r') as f:
             json_str = f.read()
-            crte = jsonpickle.decode(json_str)
-            crteD[symbol] = crte
+            crteD[symbol] = jsonpickle.decode(json_str)
     else:
         crte: List[Crta] = []
         crteD[symbol] = crte
@@ -426,6 +425,7 @@ def deleteLine():
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
+    app.logger.info("Delete line for symbol: " + symbol + "...")
             
     line_name = request.args.get('name')
     needsWrite=False
@@ -441,7 +441,8 @@ def deleteLine():
         with open(crtePath,'w') as f:
             strJson = jsonpickle.encode(crteD[symbol], indent=2)
             f.write(strJson)    
-    
+
+    app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
     return "ok", 200
 
 def writeCrte(symbol):
@@ -450,6 +451,7 @@ def writeCrte(symbol):
         with open(crtePath,'w') as f:
             strJson = jsonpickle.encode(crteD[symbol], indent=2)
             f.write(strJson)
+            app.logger.info("Wrote crte for symbol: " + symbol)
              
     except:
         if os.path.isfile(crtePath):        
@@ -465,6 +467,8 @@ def addLine():
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
+    
+    app.logger.info("/addLine for symbol: " + symbol)
             
     contentJson = request.json
     app.logger.info(contentJson)
@@ -472,8 +476,7 @@ def addLine():
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     
     if 'type' in contentJson.keys() and contentJson['type']=='line':
-        crta1=Crta(len(crte), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
-        
+        crta1=Crta(crteD[symbol], contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
         crteD[symbol].append(crta1)
         writeCrte(symbol)
         calculateCrossSections(symbol)
@@ -495,10 +498,11 @@ def addLine():
             calculateCrossSections(symbol)
             return getPlotData(), 200
         else:
-            app.logger.info("Did not find crta: " + intI)
+            app.logger.warn("Did not find crta: " + intI)
     else:
-        app.logger.info(contentJson)
+        app.logger.warn("Unknow json: " + contentJson)
 
+    app.logger.info("/addLine for symbol: " + symbol + "... Done.")
     return "ok", 200
 
 '''
@@ -545,7 +549,6 @@ def home():
         tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
     
     return render_template('./index.html', plot_data=plot_data1, webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol})
-    #return render_template_string(template,plot_data=plot_data1)
 
 
 #Debug(app)
@@ -555,5 +558,3 @@ def home():
 if __name__ == '__main__':
     app.run(host = '127.0.0.1', port = '8000', debug=True)
     
-
-
