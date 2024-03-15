@@ -345,11 +345,10 @@ def threaded_function():
     repeatPullNewData()
  
  
-if __name__ == "__main__":
-    thread = Thread(target = threaded_function, args = ())
-    thread.start()
-    thread.join()
-    print("thread finished...exiting")
+thread = Thread(target = threaded_function, args = ())
+thread.start()
+thread.join()
+print("thread finished...exiting")
     
 
 
