@@ -315,7 +315,6 @@ ws.kline_stream(
 currentHour = 0
 def repeatPullNewData():
     global currentHour, symbols
-    app.logger.info("Check hour changed: " + str(currentHour))
     if dt.datetime.now().hour != currentHour:
         currentHour = dt.datetime.now().hour
         app.logger.info("beep - hour changed: " + str(currentHour))
