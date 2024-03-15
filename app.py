@@ -18,6 +18,7 @@ import logging
 import locale
 from shapely.geometry import LineString, Point
 import numpy as np
+import claudeTest
 
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
@@ -40,11 +41,14 @@ import smtplib
 from pathlib import Path
 from string import Template
 from numpy.distutils.fcompiler import none
+from claudeTest import getSuggestion
+from tkinter.constants import CURRENT
 #from pandas.conftest import datapath
 global lineCounter, dfs, interval, crteD
 
 crteD = dict()
 dfs = dict()
+claudRecomendation = dict()
 
 app = Flask(__name__,
             static_folder='./static',
@@ -312,7 +316,7 @@ ws.kline_stream(
 )
 '''
 
-currentHour = 0
+currentHour = dt.datetime.now().hour
 def repeatPullNewData():
     global currentHour, symbols
     if dt.datetime.now().hour != currentHour:
@@ -335,6 +339,8 @@ def repeatPullNewData():
             
             krogci_x, krogci_y = calculateCrossSections(symbol)
             sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
+            
+            claudRecomendation[symbol] = getSuggestion(dfs[symbol])
 
     
     threading.Timer(5, repeatPullNewData).start()
@@ -544,7 +550,12 @@ def home():
     for symb in symbols:
         tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
     
-    return render_template('./index.html', plot_data=plot_data1, webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol})
+    if not symbol in claudRecomendation.keys():
+        claudRecomendation[symbol] = getSuggestion(dfs[symbol])
+    
+    return render_template('./index.html', plot_data=plot_data1, 
+                           webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol, 'suggestion': claudRecomendation[symbol][0], 'explanation': claudRecomendation[symbol][1],
+                           'price': f"{claudRecomendation[symbol][2]:,.2f}"})
 
 
 #Debug(app)

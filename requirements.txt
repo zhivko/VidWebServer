@@ -9,3 +9,4 @@ jsonpickle
 pyopenssl
 werkzeug
 shapely
+TA-Lib
