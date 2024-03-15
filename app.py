@@ -42,7 +42,7 @@ from pathlib import Path
 from string import Template
 from numpy.distutils.fcompiler import none
 from claudeTest import getSuggestion
-from tkinter.constants import CURRENT
+#from tkinter.constants import CURRENT
 #from pandas.conftest import datapath
 global lineCounter, dfs, interval, crteD
 
