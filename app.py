@@ -66,7 +66,7 @@ else:
     app.logger.addHandler(handlerConsole)
 
 
-symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JPUSDT', 'RNDRUSDT'}
+symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT'}
 
 lineCounter=0
 dfs={}
