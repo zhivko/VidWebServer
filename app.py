@@ -66,7 +66,7 @@ else:
     app.logger.addHandler(handlerConsole)
 
 
-symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT'}
+symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JPUSDT', 'RNDRUSDT'}
 
 lineCounter=0
 dfs={}
@@ -185,7 +185,7 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
                       
             
     if text_data!='':
-        text = 'https://crypto.zhivko.eu\n';
+        text = 'https://crypto.zhivko.eu/?pair='+symbol+'\n';
         text = text + 'Crossing happened for ' + symbol + '\n'
         text = text + text_data
         message = MIMEMultipart("alternative")

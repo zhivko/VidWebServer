@@ -85,8 +85,14 @@ WorkingDirectory=/home/klemen/git/VidWebServer
 ExecStart=/usr/bin/gunicorn --bind 127.0.0.1:8000 app:app --access-logfile ./log/access.log --error-logfile ./log/log.log --capture-output True --log-level debug
 
 [Install]
-WantedBy=multi-user.target 
+WantedBy=multi-user.target
+After=network-online.target
+Wants=network-online.target
 ```
+
+Restart daemon with:
+
+`systemctl daemon-reload`
 
 Start with:
 
