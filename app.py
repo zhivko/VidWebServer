@@ -66,7 +66,7 @@ else:
     app.logger.addHandler(handlerConsole)
 
 
-symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT'}
+symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'ETHBTC', 'DOGEBTC'}
 
 lineCounter=0
 dfs={}
@@ -160,7 +160,8 @@ def getDataPath(symbol):
 
 session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
 result = session.get_tickers(category="linear").get('result')['list']
-tickers = [asset['symbol'] for asset in result if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
+# if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
+tickers = [asset['symbol'] for asset in result]
 app.logger.info(tickers)
 tickers_data=""
 for symbol in symbols:
