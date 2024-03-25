@@ -341,7 +341,10 @@ def repeatPullNewData():
             krogci_x, krogci_y = calculateCrossSections(symbol)
             sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
             
-            claudRecomendation[symbol] = getSuggestion(dfs[symbol])
+            if symbol in dfs.keys:
+                claudRecomendation[symbol] = getSuggestion(dfs[symbol])
+            else:
+                claudRecomendation[symbol] = ""
 
     
     threading.Timer(5, repeatPullNewData).start()
