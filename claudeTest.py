@@ -83,7 +83,7 @@ def getSuggestion(price_data):
         suggestion = "Hold"
     
     # Print the current price and buy/sell suggestion
-    current_price = close_prices[0]
+    current_price = close_prices.iloc[0]
     
     explanation = f"RSI: {rsi:.2f}<br>"
     explanation += f"MACD: {macd:.2f}<br>"
