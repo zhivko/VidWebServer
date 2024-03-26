@@ -222,6 +222,24 @@ message.attach(part1)
 gmail(message)
 '''
 
+def obv(data):
+    """
+    Calculate On Balance Volume (OBV) for given data.
+    
+    :param data: pandas DataFrame which contains ['Close', 'Volume'] columns
+    :return: pandas Series with OBV values
+    """
+    obv = [0]
+    for i in range(1, len(data)):
+        if data['Close'][i] > data['Close'][i - 1]:
+            obv.append(obv[-1] + data['Volume'][i])
+        elif data['Close'][i] < data['Close'][i - 1]:
+            obv.append(obv[-1] - data['Volume'][i])
+        else:
+            obv.append(obv[-1])
+    return pd.Series(obv, index=data.index)
+
+
 
 result = session.get_tickers(category="linear").get('result')['list']
 # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
@@ -548,11 +566,12 @@ def home():
             return "Thread for collecting data has been started... Try later..."
         
     else:
-        dfs[symbol]=pd.read_csv(mydata)
-        dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
-        dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
-        f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-        dfs[symbol].index = dfs[symbol].timestamp.apply(f)
+        if not symbol in dfs.keys():
+            dfs[symbol] = pd.read_csv(mydata)
+            dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
+            dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
+            f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+            dfs[symbol].index = dfs[symbol].timestamp.apply(f)
     
     app.logger.info(dfs[symbol])
     plot_data1 = getPlotData(symbol)
