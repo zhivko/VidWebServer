@@ -66,16 +66,12 @@ else:
     app.logger.addHandler(handlerConsole)
 
 
-symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'ETHBTC', 'DOGEUSDT'}
+symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT'}
 
 lineCounter=0
 dfs={}
 interval = 60
 locale.setlocale(locale.LC_ALL, 'sl_SI')
-
-jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-
-#crte = Crta[]
 
 with open("./authcreds.json") as j:
     creds = json.load(j)
@@ -83,40 +79,7 @@ with open("./authcreds.json") as j:
 kljuc = creds['kljuc']
 geslo = creds['geslo']
 
-
-
-def gmail(message, symbol):
-    global creds
-    gmailEmail = creds['gmailEmail']
-    gmailPwd = creds['gmailPwd']
-
-
-    try:
-        app.logger.info('sending email...')
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.ehlo()
-        server.starttls()
-        server.login(gmailEmail,gmailPwd)
-        #server.set_debuglevel(1)
-        
-        message["Subject"] = symbol
-        message["From"] = gmailEmail
-        
-        message["To"] = creds['emailTo'] #', '.join(["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"])
-        
-        server.send_message(message)
-        server.close()
-        app.logger.info('sending email...Done.')
-    except:
-        app.logger.error("failed to send mail")
-        app.logger.error(traceback.format_exc())
-
-'''
-message = MIMEMultipart("alternative")
-part1 = MIMEText("testing", "plain")
-message.attach(part1)
-gmail(message)
-'''
+session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
 
 def format_data(response):
     '''
@@ -157,8 +120,109 @@ def getDataPath(symbol):
             os.mkdir(path, mode = 0o777)
             app.logger.info("Directory '% s' created" % path)
         return os.path.realpath(path);
+    
+def get_last_timestamp(symbol):
+    if not symbol in dfs.keys():
+        return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
 
-session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
+    return int(dfs.get(symbol).timestamp[-1:].values[0])
+    
+
+def pullNewData(symbol, start, interval):
+    global dfs
+    added = False
+    
+    dataPath = getDataPath(symbol) + os.sep + symbol + '.data'
+    
+    while True:
+        app.logger.info(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
+            ' Collecting data for: ' + symbol + ' from ' + \
+            dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
+
+        response = session.get_kline(category='linear', 
+                                     symbol=symbol, 
+                                     start=start,
+                                     interval=interval).get('result')
+        
+        latest = format_data(response)
+        
+        if not isinstance(latest, pd.DataFrame):
+            break
+        
+        start = latest.timestamp[-1:].values[0]
+        
+        time.sleep(0.1)
+        
+        if not symbol in dfs.keys():
+            dfs[symbol] = latest
+        else:
+            dfs[symbol] = pd.concat([dfs[symbol], latest])
+        
+        added=True
+        app.logger.info("Appended data.")
+        if len(latest) == 1:
+            break
+    
+    if added:
+        dfs.get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
+        dfs.get(symbol).to_csv(dataPath)
+        
+        app.logger.info("Saved to csv.")
+
+# try load data
+for symbol in symbols:
+    dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
+    if not symbol in dfs.keys():
+        if os.path.isfile(dataPath):
+            dfs[symbol] = pd.read_csv(dataPath)
+            dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
+            dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
+            f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+            dfs[symbol].index = dfs[symbol].timestamp.apply(f)
+            
+            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+            if symbol in dfs.keys():
+                start = get_last_timestamp(symbol)
+            pullNewData(symbol, start, interval)
+
+jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
+
+#crte = Crta[]
+
+def gmail(message, symbol):
+    global creds
+    gmailEmail = creds['gmailEmail']
+    gmailPwd = creds['gmailPwd']
+
+
+    try:
+        app.logger.info('sending email...')
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo()
+        server.starttls()
+        server.login(gmailEmail,gmailPwd)
+        #server.set_debuglevel(1)
+        
+        message["Subject"] = symbol
+        message["From"] = gmailEmail
+        
+        message["To"] = creds['emailTo'] #', '.join(["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"])
+        
+        server.send_message(message)
+        server.close()
+        app.logger.info('sending email...Done.')
+    except:
+        app.logger.error("failed to send mail")
+        app.logger.error(traceback.format_exc())
+
+'''
+message = MIMEMultipart("alternative")
+part1 = MIMEText("testing", "plain")
+message.attach(part1)
+gmail(message)
+'''
+
+
 result = session.get_tickers(category="linear").get('result')['list']
 # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
 tickers = [asset['symbol'] for asset in result]
@@ -209,54 +273,6 @@ def calculateCrossSections(symbol):
                 krogci_y.append(intersection.coords[0][1])
     return krogci_x, krogci_y
 
-
-def pullNewData(symbol, start, interval):
-    global dfs
-    added = False
-    
-    dataPath = getDataPath(symbol) + os.sep + symbol + '.data'
-    
-    while True:
-        app.logger.info(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
-            ' Collecting data for: ' + symbol + ' from ' + \
-            dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
-
-        response = session.get_kline(category='linear', 
-                                     symbol=symbol, 
-                                     start=start,
-                                     interval=interval).get('result')
-        
-        latest = format_data(response)
-        
-        if not isinstance(latest, pd.DataFrame):
-            break
-        
-        start = latest.timestamp[-1:].values[0]
-        
-        time.sleep(0.1)
-        
-        if not symbol in dfs.keys():
-            dfs[symbol] = latest
-        else:
-            dfs[symbol] = pd.concat([dfs[symbol], latest])
-        
-        added=True
-        app.logger.info("Appended data.")
-        if len(latest) == 1:
-            break
-    
-    if added:
-        dfs.get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
-        dfs.get(symbol).to_csv(dataPath)
-        
-        app.logger.info("Saved to csv.")
-
-
-def get_last_timestamp(symbol):
-    if not symbol in dfs.keys():
-        return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-
-    return int(dfs.get(symbol).timestamp[-1:].values[0])
 
 
 
@@ -324,15 +340,6 @@ def repeatPullNewData():
         currentHour = dt.datetime.now().hour
         app.logger.info("beep - hour changed: " + str(currentHour))
         for symbol in symbols:
-            dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
-            if not symbol in dfs.keys():
-                if os.path.isfile(dataPath):
-                    dfs[symbol] = pd.read_csv(dataPath)
-                    dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
-                    dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
-                    f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-                    dfs[symbol].index = dfs[symbol].timestamp.apply(f)            
-            
             start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
             if symbol in dfs.keys():
                 start = get_last_timestamp(symbol)
