@@ -12,7 +12,7 @@
 
 <div id="plot_div" style="width: 100%; height: 100%; position: relative; float: left; z-index:1000"></div>
 <div id="lines_div" style="width: 20%; float: left; position: absolute; z-index:1001; top: 0%; left: 20%;">
-	<select name="list_box_crte" size="8" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);"></select>
+	<select name="list_box_crte" id="list_box_crte" size="8" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);"></select>
 </div>
 <div id="pairs_div" style="width: 6%; float: right; position: absolute; z-index:1001; top: 12%; right: 0%;">
 	<select id="list_box_pairs" name="list_box_pairs" size="8" onchange="myPairChangeEvent();">
@@ -35,10 +35,9 @@ function myPairChangeEvent()
 	window.location.href = host+"index.html?pair="+pair;
 }
 
-/*
 function listboxKeyDown(
 {
-	var selectedValue = document.getElementsByName('list_box_crte')[0].value;
+	var selectedValue = document.getElementById('list_box_crte').value;
 	var pair = document.getElementsByName('list_box_pairs')[0].value;
 	if(e.key == "Delete")
 	    for(let i=0; i<shapes.length; i++)
@@ -59,7 +58,6 @@ function listboxKeyDown(
         	}
 		}
 }
-*/
 
 function myCrteChangeEvent()
 {
