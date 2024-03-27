@@ -279,7 +279,7 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
 def calculateCrossSections(symbol):
     krogci_x=[]
     krogci_y=[]
-    for index, row in dfs[symbol].tail(5).iterrows():
+    for index, row in dfs[symbol].tail(20).iterrows():
         loc = dfs[symbol].index.get_loc(row.name)
         first_line = LineString([Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].low), Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].high)])
         for crta in crteD[symbol]:
@@ -526,7 +526,6 @@ def addLine():
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
             writeCrte(symbol)
-            calculateCrossSections(symbol)
             return getPlotData(symbol), 200
         else:
             app.logger.warn("Did not find crta: " + intI)
@@ -548,7 +547,7 @@ def threaded_function2(symbol, start, interval):
 thread2 = Thread()
 
 
-@app.route('/')
+@app.route('/index.html')
 def home():
     global thread2
     symbol = request.args.get('pair')
