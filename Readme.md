@@ -26,6 +26,8 @@ Below is sample nginx.conf, you can edit it on linux by
 
 `sudo nano /etc/nginx.conf`
 
+`sudo systemctl restart nginx`
+
 ```
 server {
     listen 443 ssl http2;

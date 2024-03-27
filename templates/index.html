@@ -32,10 +32,10 @@ function myPairChangeEvent()
 {
 	var pair = document.getElementsByName('list_box_pairs')[0].value;
 	var host = window.location.protocol + "//" + window.location.host;
-	window.location.href = host+"?pair="+pair;
+	window.location.href = host+"index.html?pair="+pair;
 }
 
-function listboxKeyDown(e)
+function listboxKeyDown(
 {
 	var selectedValue = document.getElementsByName('list_box_crte')[0].value;
 	var pair = document.getElementsByName('list_box_pairs')[0].value;

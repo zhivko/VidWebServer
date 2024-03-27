@@ -5,6 +5,7 @@
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 from flask import Flask, redirect, render_template, request, send_from_directory
+from flask import abort
 from threading import Thread
 from flask_debug import Debug
 import os.path
@@ -546,9 +547,12 @@ def threaded_function2(symbol, start, interval):
  
 thread2 = Thread()
 
+@app.route('/')
+def home():
+    return abort(404)
 
 @app.route('/index.html')
-def home():
+def index():
     global thread2
     symbol = request.args.get('pair')
     if(symbol == None or symbol==""):
