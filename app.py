@@ -547,9 +547,11 @@ def threaded_function2(symbol, start, interval):
  
 thread2 = Thread()
 
-@app.route('/')
-def home():
-    return abort(404)
+@app.errorhandler(404) 
+# inbuilt function which takes error as parameter 
+def not_found(): 
+# defining function 
+    return render_template("404.html") 
 
 @app.route('/index.html')
 def index():
