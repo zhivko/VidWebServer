@@ -414,7 +414,7 @@ def getPlotData(symbol):
         lines.append(crta.plotlyLine());
     
     krogci_x, krogci_y = calculateCrossSections(symbol)
-    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 
+    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'title': symbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y,
             'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + timedelta(days=7)
             }
