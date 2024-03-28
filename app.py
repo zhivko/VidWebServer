@@ -269,7 +269,7 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
                       
             
     if text_data!='':
-        text = 'https://crypto.zhivko.eu/?pair='+symbol+'\n';
+        text = 'https://crypto.zhivko.eu/index.html?pair='+symbol+'\n';
         text = text + 'Crossing happened for ' + symbol + '\n'
         text = text + text_data
         message = MIMEMultipart("alternative")
