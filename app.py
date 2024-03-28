@@ -361,17 +361,16 @@ def repeatPullNewData():
         for symbol in symbols:
             start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
             if symbol in dfs.keys():
+                claudRecomendation[symbol] = getSuggestion(dfs[symbol])
                 start = get_last_timestamp(symbol)
+            else:
+                claudRecomendation[symbol] = ""
+
             pullNewData(symbol, start, interval)
             
             krogci_x, krogci_y = calculateCrossSections(symbol)
             sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
             
-            if symbol in dfs.keys:
-                claudRecomendation[symbol] = getSuggestion(dfs[symbol])
-            else:
-                claudRecomendation[symbol] = ""
-
     
     threading.Timer(5, repeatPullNewData).start()
     
