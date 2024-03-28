@@ -31,24 +31,26 @@ Below is sample nginx.conf, you can edit it on linux by
 ```
 server {
     listen 443 ssl http2;
-    server_name crypto.kz.com;
-    ssl_certificate /home/kz/git/VidWebServer/cert.pem;
-    ssl_certificate_key /home/kz/git/VidWebServer/key.pem;
+    server_name crypto.zhivko.eu;
+    ssl_certificate /etc/letsencrypt/live/crypto.zhivko.eu/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/crypto.zhivko.eu/privkey.pem;
 
-    location / {
+    location /index.html | /deleteline | /addline | /scroll | favicon.ico {
         proxy_pass http://127.0.0.1:8000/;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-Prefix /;
+        proxy_set_header Host $host;
+        allow all;
     }
-}
 
-server {
-    listen 80;
-    server_name example.com;
-    location / {
-        return 301 https://$host$request_uri;
+    location static/favicon.ico / {
+        allow all;
+    }
+
+    location ~* / {
+        deny all;
     }
 }
 ```
