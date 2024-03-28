@@ -86,7 +86,7 @@ After=network.target
 User=klemen
 Group=www-data
 WorkingDirectory=/home/klemen/git/VidWebServer
-ExecStart=/usr/bin/gunicorn --bind 127.0.0.1:8000 app:app --access-logfile ./log/access.log --access_log_format '%({X-Forwarded-For}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"' --error-logfile ./log/log.log --capture-output True --log-level debug
+ExecStart=/usr/bin/gunicorn --bind 127.0.0.1:8000 app:app --access-logfile ./log/access.log --error-logfile ./log/log.log --capture-output True --log-level debug
 
 [Install]
 WantedBy=multi-user.target
