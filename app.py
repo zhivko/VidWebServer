@@ -476,6 +476,7 @@ def writeCrte(symbol):
 
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
+    app.logger.info("IP: " + request.remote_addr)
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
@@ -496,6 +497,7 @@ def deleteLine():
 @app.route('/addLine', methods=['POST'])
 def addLine():
     global crteD
+    app.logger.info("IP: " + request.remote_addr)
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
