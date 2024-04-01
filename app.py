@@ -282,14 +282,18 @@ def calculateCrossSections(symbol):
     krogci_y=[]
     for index, row in dfs[symbol].tail(20).iterrows():
         loc = dfs[symbol].index.get_loc(row.name)
-        first_line = LineString([Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].low), Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].high)])
-        for crta in crteD[symbol]:
-            second_line = LineString([Point(crta.x0_timestamp, crta.y0),Point(crta.x1_timestamp, crta.y1)])
-            if first_line.intersects(second_line):
-                intersection = first_line.intersection(second_line)
-                time = dt.datetime.utcfromtimestamp(int(intersection.coords[0][0])/1000).strftime("%Y-%m-%d %H:%M:%S")
-                krogci_x.append(time)
-                krogci_y.append(intersection.coords[0][1])
+        try:
+            first_line = LineString([Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].low), Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].high)])
+            for crta in crteD[symbol]:
+                second_line = LineString([Point(crta.x0_timestamp, crta.y0),Point(crta.x1_timestamp, crta.y1)])
+                if first_line.intersects(second_line):
+                    intersection = first_line.intersection(second_line)
+                    time = dt.datetime.utcfromtimestamp(int(intersection.coords[0][0])/1000).strftime("%Y-%m-%d %H:%M:%S")
+                    krogci_x.append(time)
+                    krogci_y.append(intersection.coords[0][1])
+        except Exception as e:
+            app.logger.error("An exception occurred in calculateCrossSections.")
+            app.logger.error(e)
     return krogci_x, krogci_y
 
 
