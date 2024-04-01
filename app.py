@@ -476,7 +476,9 @@ def writeCrte(symbol):
 
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
-    app.logger.info("IP: " + request.remote_addr)
+    remote_ip = request.headers.get('X-Forwarded-For')
+    if remote_ip != '89.233.122.140':
+        return "forbidden", 403
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
@@ -498,7 +500,9 @@ def deleteLine():
 def addLine():
     global crteD
     remote_ip = request.headers.get('X-Forwarded-For')
-    app.logger.info("Remote IP: " + remote_ip)
+    if remote_ip != '89.233.122.140':
+        return "forbidden", 403
+        
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
