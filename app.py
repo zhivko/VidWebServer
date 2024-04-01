@@ -497,7 +497,8 @@ def deleteLine():
 @app.route('/addLine', methods=['POST'])
 def addLine():
     global crteD
-    app.logger.info("IP: " + request.remote_addr)
+    remote_ip = request.headers.get('X-Forwarded-For')
+    app.logger.info("Remote IP: " + remote_ip)
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
