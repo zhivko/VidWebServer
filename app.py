@@ -152,7 +152,7 @@ def pullNewData(symbol, start, interval):
         
         start = latest.timestamp[-1:].values[0]
         
-        time.sleep(0.1)
+        time.sleep(0.2)
         
         if not symbol in dfs.keys():
             dfs[symbol] = latest
@@ -376,7 +376,7 @@ def repeatPullNewData():
             sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
             
     
-    threading.Timer(5, repeatPullNewData).start()
+    threading.Timer(20, repeatPullNewData).start()
     
 # function to create threads
 def threaded_function():
