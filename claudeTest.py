@@ -4,6 +4,7 @@ import datetime
 import json
 import time
 import numpy as np
+import pytz
 
 # Bybit API credentials
 api_key = "YOUR_API_KEY"
@@ -84,7 +85,10 @@ def getSuggestion(price_data):
     
     # Print the current price and buy/sell suggestion
     current_price = close_prices.iloc[0]
-    date_time = datetime.datetime.fromtimestamp(timestamps.iloc[0]/1000).strftime("%d.%m.%Y %H:%M:%S")
+    #date_time = datetime.datetime.fromtimestamp(timestamps.iloc[0]/1000).strftime("%d.%m.%Y %H:%M:%S")
+    
+    ljubljana_tz = pytz.timezone('Europe/Ljubljana')
+    local_time = datetime.datetime.fromtimestamp(timestamps.iloc[0]/1000, ljubljana_tz)
     
     explanation = f"RSI: {rsi:.2f}<br>"
     explanation += f"MACD: {macd:.2f}<br>"
@@ -92,7 +96,7 @@ def getSuggestion(price_data):
     explanation += f"Stochastic %K: {slowk:.2f}<br>"
     explanation += f"Stochastic %D: {slowd:.2f}"
     
-    return suggestion, explanation, current_price, date_time
+    return suggestion, explanation, current_price, local_time
 
 '''
 interval = "60"  # 1-hour interval
