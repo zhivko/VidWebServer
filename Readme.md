@@ -51,8 +51,9 @@ server {
         allow all;
     }
 
-    location ~* / {
+    location = / {
         deny all;
+        return 404;
     }
 }
 ```
@@ -98,11 +99,11 @@ Wants=network-online.target
 
 Restart daemon with:
 
-`systemctl daemon-reload`
+`sudo systemctl daemon-reload`
 
 Start with:
 
-`systemctl restart myproject.service`
+`sudo systemctl restart myproject.service`
 
 # for renewing cert
 

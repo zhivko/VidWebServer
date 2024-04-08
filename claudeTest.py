@@ -1,10 +1,9 @@
-import numpy as np
 import talib
 from pybit.unified_trading import HTTP
 import datetime
 import json
 import time
-
+import numpy as np
 
 # Bybit API credentials
 api_key = "YOUR_API_KEY"
@@ -68,6 +67,7 @@ def getSuggestion(price_data):
     close_prices = price_data.iloc[::-1].loc[:,"close"]
     high_prices = price_data.iloc[::-1].loc[:,"high"]
     low_prices = price_data.iloc[::-1].loc[:,"low"]
+    timestamps = price_data.iloc[::-1].loc[:,"timestamp"]
     
     # Calculate indicators
     rsi = calculate_rsi(close_prices)
@@ -84,6 +84,7 @@ def getSuggestion(price_data):
     
     # Print the current price and buy/sell suggestion
     current_price = close_prices.iloc[0]
+    date_time = datetime.datetime.fromtimestamp(timestamps.iloc[0]/1000).strftime("%d.%m.%Y %H:%M:%S")
     
     explanation = f"RSI: {rsi:.2f}<br>"
     explanation += f"MACD: {macd:.2f}<br>"
@@ -91,7 +92,7 @@ def getSuggestion(price_data):
     explanation += f"Stochastic %K: {slowk:.2f}<br>"
     explanation += f"Stochastic %D: {slowd:.2f}"
     
-    return suggestion, explanation, current_price
+    return suggestion, explanation, current_price, date_time
 
 '''
 interval = "60"  # 1-hour interval

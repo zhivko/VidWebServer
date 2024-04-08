@@ -599,8 +599,8 @@ def index():
         claudRecomendation[symbol] = getSuggestion(dfs[symbol])
     
     return render_template('./index.html', plot_data=plot_data1, 
-                           webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol, 'suggestion': claudRecomendation[symbol][0], 'explanation': claudRecomendation[symbol][1],
-                           'price': f"{claudRecomendation[symbol][2]:,.2f}"})
+                           webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol, 'suggestion': claudRecomendation[symbol][0], 'explanation': claudRecomendation[symbol][1]
+                                        , 'price': f"{claudRecomendation[symbol][2]:,.2f}", 'datetime': claudRecomendation[symbol][3]})
 
 
 #Debug(app)
