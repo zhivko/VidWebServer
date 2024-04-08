@@ -103,7 +103,7 @@ After=network.target
 User=klemen
 Group=www-data
 WorkingDirectory=/home/klemen/git/VidWebServer
-ExecStart=/usr/bin/gunicorn --bind 127.0.0.1:8000 app:app --access-logfile ./log/access.log --error-logfile ./log/log.log --capture-output --log-level debug
+ExecStart=/usr/bin/gunicorn --config gunicorn.conf.py app:app
 
 [Install]
 WantedBy=multi-user.target
