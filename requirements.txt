@@ -10,3 +10,4 @@ pyopenssl
 werkzeug
 shapely
 TA-Lib
+gunicorn

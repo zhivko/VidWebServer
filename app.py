@@ -1,5 +1,5 @@
 #https://flask.palletsprojects.com/en/3.0.x/installation/
-#pip install -r requirements.txt
+# pip install -r requirements.txt
 #flask run
 #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
 # test
