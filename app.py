@@ -563,7 +563,7 @@ def page_not_found(error):
     return render_template('./404.html'), 404
 '''
 
-@app.route('/')
+@app.route('/',methods = ['POST', 'GET'])
 def root():
     return render_template('./404.html'), 404
 
