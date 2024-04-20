@@ -18,11 +18,13 @@ from intersect import line_intersection, crosses
 import logging
 import locale
 from shapely.geometry import LineString, Point
+from shapely import set_precision
+
 import numpy as np
 import claudeTest
 import yfinance as yahooFinance
 import sys
-
+from decimal import Decimal, getcontext
 
 
 from pybit.unified_trading import HTTP
@@ -51,26 +53,15 @@ from claudeTest import getSuggestion
 #from pandas.conftest import datapath
 global lineCounter, dfs, interval, crteD
 
-crteD = dict()
-dfs = dict()
-claudRecomendation = dict()
 
 app = Flask(__name__,
             static_folder='./static',
             template_folder='./templates')
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 
-if __name__ != '__main__':
-    gunicorn_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
-else:
-    app.logger.setLevel(logging.INFO)  # Set log level to INFO
-    #handler = logging.FileHandler('app.log')  # Log to a file
-    #handlerConsole = logging.StreamHandler(sys.stdout)
-    #app.logger.addHandler(handler)
-    #app.logger.addHandler(handlerConsole)
+crteD = dict()
+dfs = dict()
+claudRecomendation = dict()
 
 
 symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT'}
@@ -225,7 +216,6 @@ def pullNewData(symbol, start, interval):
 # try load data
 jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
 
-'''
 for symbol in symbols.union(stocks):
     dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
     if not symbol in dfs.keys():
@@ -236,11 +226,13 @@ for symbol in symbols.union(stocks):
             f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
             dfs[symbol].index = dfs[symbol].timestamp.apply(f)
 
-        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        if symbol in dfs.keys():
-            start = get_last_timestamp(symbol)
-        pullNewData(symbol, start, interval)
-'''
+            '''
+            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+            if symbol in dfs.keys():
+                start = get_last_timestamp(symbol)
+            pullNewData(symbol, start, interval)
+            '''
+
 #crte = Crta[]
 
 def gmail(message, symbol):
@@ -346,21 +338,46 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
         message.attach(part1)
         gmail(message, symbol)
 
+
 def calculateCrossSections(symbol):
     krogci_x=[]
     krogci_y=[]
-    for index, row in dfs[symbol].tail(20).iterrows():
+    precision = 1e-5
+    for index, row in dfs[symbol].tail(200).iterrows():
         loc = dfs[symbol].index.get_loc(row.name)
         try:
-            first_line = LineString([Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].low), Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].high)])
-            if symbol in crteD.keys():
-                for crta in crteD[symbol]:
-                    second_line = LineString([Point(crta.x0_timestamp, crta.y0),Point(crta.x1_timestamp, crta.y1)])
-                    if first_line.intersects(second_line):
-                        intersection = first_line.intersection(second_line)
-                        time = dt.datetime.utcfromtimestamp(int(intersection.coords[0][0])/1000).strftime("%Y-%m-%d %H:%M:%S")
+            
+            seg_1_x1 = dfs[symbol].iloc[loc].timestamp
+            seg_1_y1 = dfs[symbol].iloc[loc].low
+            seg_1_x2 = dfs[symbol].iloc[loc].timestamp
+            seg_1_y2 = dfs[symbol].iloc[loc].high
+
+            point_1 = Point([seg_1_x1, seg_1_y1]) # x, y
+            point_2 = Point([seg_1_x2, seg_1_y2]) # x, y
+            line1 = LineString((point_1, point_2))
+            set_precision(line1, precision)
+            
+            for crta in crteD[symbol]:
+                seg_2_x1 = crta.x0_timestamp
+                seg_2_y1 = crta.y0
+                seg_2_x2 = crta.x1_timestamp
+                seg_2_y2 = crta.y1
+
+                point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
+                point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
+                line2 = LineString((point_3, point_4))
+                set_precision(line2, precision)
+                
+                p_intersect = line1.intersection(line2)
+                if not p_intersect.is_empty:
+                    p_intersect = line1.intersection(line2)
+                    x = p_intersect.x
+                    y = p_intersect.y
+                    if(x>seg_2_x1 and x<seg_2_x2 and y<seg_1_y2 and y>seg_1_y1):
+                        time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
                         krogci_x.append(time)
-                        krogci_y.append(intersection.coords[0][1])
+                        krogci_y.append(y)
+                        return krogci_x, krogci_y
         except Exception as e:
             app.logger.error("An exception occurred in calculateCrossSections.")
             app.logger.error(traceback.format_exc())
@@ -671,7 +688,7 @@ def index():
     app.logger.info(dfs[symbol])
     plot_data1 = getPlotData(symbol)
     
-    tickers_data = ""
+    tickers_data = " "
     for symb in symbols.union(stocks):
         tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
     
@@ -686,8 +703,17 @@ def index():
 #Debug(app)
 #app = Flask(__name__)
 #app.conf['DEBUG'] = True
-
-if __name__ == '__main__':
+    
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+else:
+    app.logger.setLevel(logging.INFO)  # Set log level to INFO
+    #handler = logging.FileHandler('app.log')  # Log to a file
+    #handlerConsole = logging.StreamHandler(sys.stdout)
+    #app.logger.addHandler(handler)
+    #app.logger.addHandler(handlerConsole)    
     app.run(host = '127.0.0.1', port = '8000', debug=True)
-    
-    
+
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
