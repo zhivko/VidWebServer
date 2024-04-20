@@ -20,6 +20,10 @@ import locale
 from shapely.geometry import LineString, Point
 import numpy as np
 import claudeTest
+import yfinance as yahooFinance
+import sys
+
+
 
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
@@ -54,6 +58,8 @@ claudRecomendation = dict()
 app = Flask(__name__,
             static_folder='./static',
             template_folder='./templates')
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger('gunicorn.error')
@@ -62,12 +68,13 @@ if __name__ != '__main__':
 else:
     app.logger.setLevel(logging.INFO)  # Set log level to INFO
     #handler = logging.FileHandler('app.log')  # Log to a file
-    handlerConsole = logging.StreamHandler(sys.stdout)
+    #handlerConsole = logging.StreamHandler(sys.stdout)
     #app.logger.addHandler(handler)
-    app.logger.addHandler(handlerConsole)
+    #app.logger.addHandler(handlerConsole)
 
 
 symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT'}
+stocks = {'TSLA', 'MSTR', 'GC=F'}
 
 lineCounter=0
 dfs={}
@@ -82,6 +89,15 @@ geslo = creds['geslo']
 
 session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
 
+def utc_to_milliseconds(utc_string):
+    # Parse the UTC string into a datetime object
+    utc_datetime = datetime.strptime(utc_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+    
+    # Calculate the timestamp in milliseconds
+    timestamp_ms = int(utc_datetime.timestamp() * 1000)
+    
+    return timestamp_ms
+
 def format_data(response):
     '''
     Parameters
@@ -94,25 +110,43 @@ def format_data(response):
     dataframe of ohlc data with date as index
 
     '''
-    data = response.get('list', None)
     
-    if not data:
+    data = response.get('list', None)
+    if data == None:
+        # asume we have stock data
+        data = response.rename(columns={
+            'Datetime': 'timestamp',
+            'Open': 'open',
+            'High': 'high',
+            'Low': 'low',
+            'Close': 'close',
+            'Volume': 'volume'
+        })
+        data['timestamp'] = data.index.to_series()
+        data['timestamp'] = pd.to_datetime(data['timestamp']).astype('int64') // 10**6
+        #print(data)        
+        
+    else:
+        data = pd.DataFrame(data,
+                            columns =[
+                                'timestamp',
+                                'open',
+                                'high',
+                                'low',
+                                'close',
+                                'volume',
+                                'turnover'
+                                ],
+                            )
+        f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+        data.index = data.timestamp.apply(f)
+        #print(data)
+    
+    if data.empty:
         return 
     
-    data = pd.DataFrame(data,
-                        columns =[
-                            'timestamp',
-                            'open',
-                            'high',
-                            'low',
-                            'close',
-                            'volume',
-                            'turnover'
-                            ],
-                        )
     #return data
-    f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-    data.index = data.timestamp.apply(f)
+
     return data[::-1].apply(pd.to_numeric)
 
 def getDataPath(symbol):
@@ -140,19 +174,37 @@ def pullNewData(symbol, start, interval):
             ' Collecting data for: ' + symbol + ' from ' + \
             dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
 
-        response = session.get_kline(category='linear', 
-                                     symbol=symbol, 
-                                     start=start,
-                                     interval=interval).get('result')
+        if symbol in stocks:
+            if start==1230764400000:
+                start = int(dt.datetime(2020, 1, 1).timestamp()* 1000)
+            stock = yahooFinance.Ticker(symbol)
+            startFrom = dt.datetime.fromtimestamp(start/1000).strftime("%Y-%m-%d")
+            endFromDt = dt.datetime.fromtimestamp(start/1000) + timedelta(days=350)
+            if endFromDt>dt.datetime.now():
+                endFromDt=dt.datetime.now()
+            endFrom = endFromDt.strftime("%Y-%m-%d")
+            response = stock.history(start=startFrom, end=endFrom, interval='1d')
+            latest = format_data(response)
+            
+            latest = latest.rename_axis("timestamp")
+            
+            start = latest.iloc[0]['timestamp']
+        else:
+            response = session.get_kline(category='linear', 
+                                         symbol=symbol, 
+                                         start=start,
+                                         interval=interval).get('result')
+            latest = format_data(response)
+            start = latest.timestamp[-1:].values[0]
         
-        latest = format_data(response)
+        app.logger.info("received " + str(latest.size) + " records")
         
         if not isinstance(latest, pd.DataFrame):
             break
         
-        start = latest.timestamp[-1:].values[0]
-        
         time.sleep(0.2)
+        
+        
         
         if not symbol in dfs.keys():
             dfs[symbol] = latest
@@ -171,7 +223,10 @@ def pullNewData(symbol, start, interval):
         app.logger.info("Saved to csv.")
 
 # try load data
-for symbol in symbols:
+jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
+
+'''
+for symbol in symbols.union(stocks):
     dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
     if not symbol in dfs.keys():
         if os.path.isfile(dataPath):
@@ -180,14 +235,12 @@ for symbol in symbols:
             dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
             f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
             dfs[symbol].index = dfs[symbol].timestamp.apply(f)
-            
-            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-            if symbol in dfs.keys():
-                start = get_last_timestamp(symbol)
-            pullNewData(symbol, start, interval)
 
-jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-
+        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        if symbol in dfs.keys():
+            start = get_last_timestamp(symbol)
+        pullNewData(symbol, start, interval)
+'''
 #crte = Crta[]
 
 def gmail(message, symbol):
@@ -241,13 +294,29 @@ def obv(data):
     return pd.Series(obv, index=data.index)
 
 
+'''
+# test retrieving of tsla and btcusdt
+testSymbols = ['TSLA', 'BTCUSDT']
+for symbol in testSymbols:
+    start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+    if symbol in dfs.keys():
+        claudRecomendation[symbol] = getSuggestion(dfs[symbol])
+        start = get_last_timestamp(symbol)
+    else:
+        claudRecomendation[symbol] = ""
+    
+    pullNewData(symbol, start, interval)
+sys.exit(0)    
+# test retrieving of tsla and btcusdt
+'''
+
 
 result = session.get_tickers(category="linear").get('result')['list']
 # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
 tickers = [asset['symbol'] for asset in result]
 app.logger.info(tickers)
 tickers_data=""
-for symbol in symbols:
+for symbol in symbols.union(stocks):
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     app.logger.info(crtePath)
     if os.path.isfile(crtePath):
@@ -284,16 +353,17 @@ def calculateCrossSections(symbol):
         loc = dfs[symbol].index.get_loc(row.name)
         try:
             first_line = LineString([Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].low), Point(dfs[symbol].iloc[loc].timestamp, dfs[symbol].iloc[loc].high)])
-            for crta in crteD[symbol]:
-                second_line = LineString([Point(crta.x0_timestamp, crta.y0),Point(crta.x1_timestamp, crta.y1)])
-                if first_line.intersects(second_line):
-                    intersection = first_line.intersection(second_line)
-                    time = dt.datetime.utcfromtimestamp(int(intersection.coords[0][0])/1000).strftime("%Y-%m-%d %H:%M:%S")
-                    krogci_x.append(time)
-                    krogci_y.append(intersection.coords[0][1])
+            if symbol in crteD.keys():
+                for crta in crteD[symbol]:
+                    second_line = LineString([Point(crta.x0_timestamp, crta.y0),Point(crta.x1_timestamp, crta.y1)])
+                    if first_line.intersects(second_line):
+                        intersection = first_line.intersection(second_line)
+                        time = dt.datetime.utcfromtimestamp(int(intersection.coords[0][0])/1000).strftime("%Y-%m-%d %H:%M:%S")
+                        krogci_x.append(time)
+                        krogci_y.append(intersection.coords[0][1])
         except Exception as e:
             app.logger.error("An exception occurred in calculateCrossSections.")
-            app.logger.error(e)
+            app.logger.error(traceback.format_exc())
     return krogci_x, krogci_y
 
 
@@ -362,7 +432,7 @@ def repeatPullNewData():
     if dt.datetime.now().hour != currentHour:
         currentHour = dt.datetime.now().hour
         app.logger.info("beep - hour changed: " + str(currentHour))
-        for symbol in symbols:
+        for symbol in symbols.union(stocks):
             start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
             if symbol in dfs.keys():
                 claudRecomendation[symbol] = getSuggestion(dfs[symbol])
@@ -392,11 +462,12 @@ print("thread finished...exiting")
 
 def getCrtaWithIndex(index, symbol):
     i=0
-    for crta in crteD[symbol]:
-        if i==index:
-            return crta
-        i=i+1
-
+    if symbol in crteD.keys():
+        for crta in crteD[symbol]:
+            if i==index:
+                return crta
+            i=i+1
+    return None
 
 def getPlotData(symbol):
     global crteD
@@ -413,8 +484,9 @@ def getPlotData(symbol):
     close = dfs[symbol].tail(howmany)['close'].astype(float).tolist()
     volume = dfs[symbol].tail(howmany)['volume'].astype(float).tolist()
     lines = [];
-    for crta in crteD[symbol]:
-        lines.append(crta.plotlyLine());
+    if symbol in crteD.keys():
+        for crta in crteD[symbol]:
+            lines.append(crta.plotlyLine());
     
     krogci_x, krogci_y = calculateCrossSections(symbol)
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
@@ -476,9 +548,11 @@ def writeCrte(symbol):
 
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
+    '''
     remote_ip = request.headers.get('X-Forwarded-For')
     if remote_ip != '89.233.122.140':
         return "forbidden", 403
+    '''
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
@@ -499,9 +573,11 @@ def deleteLine():
 @app.route('/addLine', methods=['POST'])
 def addLine():
     global crteD
+    '''
     remote_ip = request.headers.get('X-Forwarded-For')
     if remote_ip != '89.233.122.140':
         return "forbidden", 403
+    '''
         
     symbol = request.args.get('pair')
     if symbol==None:
@@ -596,7 +672,7 @@ def index():
     plot_data1 = getPlotData(symbol)
     
     tickers_data = ""
-    for symb in symbols:
+    for symb in symbols.union(stocks):
         tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
     
     if not symbol in claudRecomendation.keys():

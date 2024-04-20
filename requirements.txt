@@ -11,3 +11,4 @@ werkzeug
 shapely
 TA-Lib
 gunicorn
+yfinance
