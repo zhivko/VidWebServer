@@ -377,7 +377,7 @@ def calculateCrossSections(symbol):
                         time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
                         krogci_x.append(time)
                         krogci_y.append(y)
-                        return krogci_x, krogci_y
+                        continue
         except Exception as e:
             app.logger.error("An exception occurred in calculateCrossSections.")
             app.logger.error(traceback.format_exc())
