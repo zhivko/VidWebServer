@@ -1,7 +1,6 @@
 /authcreds.json
 /cert.pem
 /key.pem
-/BTCUSDT/
 /ETHBTC/
 /ETHUSDT/
 /SOLUSDT/
@@ -12,7 +11,8 @@
 /ADAUSDT/
 /DOGEUSDT/
 /HNTUSDT/
-**/*.data
+#**/*.data
 /GC=F/
 /MSTR/
 /TSLA/
+/CLSK/

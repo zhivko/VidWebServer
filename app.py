@@ -19,6 +19,7 @@ import logging
 import locale
 from shapely.geometry import LineString, Point
 from shapely import set_precision
+from shapely import distance
 
 import numpy as np
 import claudeTest
@@ -358,6 +359,7 @@ def calculateCrossSections(symbol):
             set_precision(line1, precision)
             
             for crta in crteD[symbol]:
+                #print(crta.ime)
                 seg_2_x1 = crta.x0_timestamp
                 seg_2_y1 = crta.y0
                 seg_2_x2 = crta.x1_timestamp
@@ -371,6 +373,12 @@ def calculateCrossSections(symbol):
                 p_intersect = line1.intersection(line2)
                 if not p_intersect.is_empty:
                     p_intersect = line1.intersection(line2)
+                    
+                    dist1 = distance(line1, p_intersect)
+                    dist2 = distance(line2, p_intersect)
+                    
+                    print(dist1, dist2)
+                    
                     x = p_intersect.x
                     y = p_intersect.y
                     if(x>seg_2_x1 and x<seg_2_x2 and y<seg_1_y2 and y>seg_1_y1):
@@ -501,13 +509,21 @@ def getPlotData(symbol):
     close = dfs[symbol].tail(howmany)['close'].astype(float).tolist()
     volume = dfs[symbol].tail(howmany)['volume'].astype(float).tolist()
     lines = [];
+    lineEndpoints_x = [];
+    lineEndpoints_y = [];
     if symbol in crteD.keys():
         for crta in crteD[symbol]:
             lines.append(crta.plotlyLine());
+            lineEndpoints_x.append(crta.x0);
+            lineEndpoints_y.append(crta.y0);
+            lineEndpoints_x.append(crta.x1);
+            lineEndpoints_y.append(crta.y1);
     
     krogci_x, krogci_y = calculateCrossSections(symbol)
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
-            'title': symbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y,
+            'title': symbol, 
+            'krogci_x': krogci_x, 'krogci_y': krogci_y,
+            'lineEndpoints_x': lineEndpoints_x, 'lineEndpoints_y': lineEndpoints_y,
             'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + timedelta(days=7)
             }
     
@@ -528,9 +544,14 @@ def scroll():
         
     contentJson = request.json
     app.logger.info(contentJson)
-    
 
-    df_range = dfs[symbol].loc[pd.Timestamp(contentJson['xaxis.range[0]']):pd.Timestamp(contentJson['xaxis.range[1]'])]
+    xaxis0 = contentJson['xaxis.range[0]'];
+    xaxis1 = contentJson['xaxis.range[1]'];
+    xaxis0_ = datetime.strptime(xaxis0, "%Y-%m-%d %H:%M:%S.%f").strftime('%Y-%m-%d %H:00:00')
+    xaxis1_ = datetime.strptime(xaxis1, "%Y-%m-%d %H:%M:%S.%f").strftime('%Y-%m-%d %H:00:00')
+        
+    
+    df_range = dfs[symbol].loc[pd.Timestamp(xaxis0_):pd.Timestamp(xaxis1_)]
     
     x = df_range.index.astype("str").tolist()
     open_ = df_range['open'].astype(float).tolist()
@@ -539,12 +560,19 @@ def scroll():
     close = df_range['close'].astype(float).tolist()
     volume = df_range['volume'].astype(float).tolist()
     lines = [];
+    lineEndpoints_x = [];
+    lineEndpoints_y = [];
     for crta in crteD[symbol]:
         lines.append(crta.plotlyLine());
+        lineEndpoints_x.append(crta.x1);
+        lineEndpoints_y.append(crta.y1);
     
     krogci_x, krogci_y = calculateCrossSections(symbol)
     
-    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 'krogci_x': krogci_x, 'krogci_y': krogci_y}, 200
+    return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 
+            'krogci_x': krogci_x, 'krogci_y': krogci_y,
+            'lineEndpoints_x': lineEndpoints_x, 'lineEndpoints_y': lineEndpoints_y,
+           }, 200
     
 
 def writeCrte(symbol):

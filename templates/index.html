@@ -111,6 +111,26 @@ var krogci = {
 	    
 };
 
+
+var lineEndpoints = {
+		mode: 'markers',
+	    type: 'scatter',
+	    x: {{ plot_data.lineEndpoints_x }} ,
+	    y: {{ plot_data.lineEndpoints_y }} ,
+	    marker: {
+	        color: 'rgba(102, 153, 255, 0.2)',
+	        size: 6,
+	        line: {
+	          color: 'rgb(231, 99, 250)',
+	          width: 1
+	        }
+	      },
+        showlegend: false
+	    
+};
+
+
+
 var trace1 = {
 	    x: {{ plot_data.x_axis }} ,
 	    
@@ -152,7 +172,7 @@ var layout = {
             color: '#7f7f7f'
         },
     showlegend: true,
-    autoscale: true,
+    autoscale: false,
     clickmode: "event+select",
     
     xaxis: {
@@ -161,7 +181,7 @@ var layout = {
         range: ['{{ plot_data.range_start }}', '{{ plot_data.range_end }}']
     },
     yaxis: {
-    	autorange: true,
+    	autorange: 'max',
         title: 'USD$',
         type: 'linear'
     },
@@ -184,7 +204,7 @@ var layout = {
 };
 {% endautoescape %}
 
-var data = [trace1, traceVolume, krogci];
+var data = [trace1, traceVolume, krogci, lineEndpoints];
 var config = {
 		  scrollZoom: true,
 		  showLink: true,
@@ -238,6 +258,9 @@ myplot.on('plotly_relayout', (event) => {
 		        
 		        krogci.x = myJson['krogci_x'];
 		        krogci.y = myJson['krogci_y'];
+
+		        lineEndpoints.x = myJson['lineEndpoints_x'];
+		        lineEndpoints.y = myJson['lineEndpoints_y'];		        
 		        
 		        Plotly.redraw('plot_div');
 		        
