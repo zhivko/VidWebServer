@@ -689,9 +689,10 @@ def page_not_found(error):
     return render_template('./404.html'), 404
 '''
 
-@app.route('/',methods = ['POST', 'GET'])
+@app.route('/',methods = ['GET'])
 def root():
-    return render_template('./404.html'), 404
+    return redirect("/index.html", code=302)
+    #return render_template('./404.html'), 404
 
 @app.route('/index.html')
 def index():
