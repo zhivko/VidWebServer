@@ -73,13 +73,16 @@ dfs={}
 interval = 60
 locale.setlocale(locale.LC_ALL, 'sl_SI')
 
-with open("./authcreds.json") as j:
-    creds = json.load(j)
 
-kljuc = creds['kljuc']
-geslo = creds['geslo']
+session = None
+if os.path.isfile("./authcreds.json"):
+    with open("./authcreds.json") as j:
+        creds = json.load(j)
+    
+    kljuc = creds['kljuc']
+    geslo = creds['geslo']
 
-session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
+    session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
 
 def utc_to_milliseconds(utc_string):
     # Parse the UTC string into a datetime object
@@ -303,12 +306,13 @@ sys.exit(0)
 # test retrieving of tsla and btcusdt
 '''
 
-
-result = session.get_tickers(category="linear").get('result')['list']
-# if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
-tickers = [asset['symbol'] for asset in result]
-app.logger.info(tickers)
-tickers_data=""
+if session != None:
+    result = session.get_tickers(category="linear").get('result')['list']
+    # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
+    tickers = [asset['symbol'] for asset in result]
+    app.logger.info(tickers)
+    tickers_data=""
+    
 for symbol in symbols.union(stocks):
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     app.logger.info(crtePath)
@@ -319,6 +323,7 @@ for symbol in symbols.union(stocks):
     else:
         crte: List[Crta] = []
         crteD[symbol] = crte
+
 
 def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
     i=0;

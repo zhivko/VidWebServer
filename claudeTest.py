@@ -6,26 +6,10 @@ import time
 import numpy as np
 import pytz
 
-# Bybit API credentials
-api_key = "YOUR_API_KEY"
-api_secret = "YOUR_API_SECRET"
 
-with open("./authcreds.json") as j:
-    creds = json.load(j)
-
-api_key = creds['kljuc']
-api_secret = creds['geslo']
-
-
-
-# Create a session with Bybit V5 API
-session = HTTP(
-    api_key=api_key,
-    api_secret=api_secret
-)
 
 # Function to fetch historical price data from Bybit
-def fetch_price_data(symbol, interval, limit):
+def fetch_price_data(symbol, interval, limit, session):
     try:
         # Calculate the start time for the last 100 periods
         end_time = int(time.time() * 1000)
