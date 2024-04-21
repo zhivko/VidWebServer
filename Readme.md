@@ -26,6 +26,8 @@ Below is sample nginx.conf, you can edit it on linux by
 
 `sudo nano /etc/nginx/sites-enabled/default`
 
+`/usr/local/nginx/sbin/nginx -t`
+
 
 `sudo systemctl restart nginx`
 

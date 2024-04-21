@@ -65,7 +65,7 @@ claudRecomendation = dict()
 
 
 symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT'}
-stocks = {'TSLA', 'MSTR', 'GC=F'}
+stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
 
 lineCounter=0
 dfs={}
@@ -377,7 +377,7 @@ def calculateCrossSections(symbol):
                         time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
                         krogci_x.append(time)
                         krogci_y.append(y)
-                        continue
+                        #continue
         except Exception as e:
             app.logger.error("An exception occurred in calculateCrossSections.")
             app.logger.error(traceback.format_exc())
