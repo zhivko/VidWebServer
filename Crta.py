@@ -13,7 +13,8 @@ class Crta(object):
     i=0
     ime=''
 
-    def convertTimeToValue(self,val):
+    def convertTimeToValue(self, val):
+        print("convertTimeToValue: " + val)
         if val.count(':')==1:
             val = val + ":0.0"
         if not "." in val:
@@ -26,7 +27,7 @@ class Crta(object):
         self.i = i
         self.changeX0(x0)
         self.y0 = y0
-        self.changeX0(x1)
+        self.changeX1(x1)
         self.y1 = y1
         self.ime= 'crta_' + str(round(time.time() * 1000))
     

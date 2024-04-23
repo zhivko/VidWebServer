@@ -121,27 +121,6 @@ var krogci = {
 };
 
 
-var lineEndpoints = {
-		mode: 'markers',
-	    type: 'scatter',
-	    x: {{ plot_data.lineEndpoints_x }} ,
-	    y: {{ plot_data.lineEndpoints_y }} ,
-	    marker: {
-	    	symbol: 'cross',
-	        color: 'rgba(102, 153, 255, 0.2)',
-	        size: 6,
-	        sizemode: 'area',
-	        line: {
-	          color: 'rgb(231, 99, 250)',
-	          width: 1
-	        }
-	      },
-        showlegend: false
-	    
-};
-
-
-
 var trace1 = {
 	    x: {{ plot_data.x_axis }} ,
 	    
@@ -215,7 +194,7 @@ var layout = {
 };
 {% endautoescape %}
 
-var data = [trace1, traceVolume, krogci, lineEndpoints];
+var data = [trace1, traceVolume, krogci ];
 var config = {
 		  scrollZoom: true,
 		  showLink: true,
@@ -229,7 +208,7 @@ var config = {
 		  },
 		  responsive: true,
 		  editable: false,
-		  edits:{'shapePosition': true},
+		  //edits:{'shapePosition': true},
 		  modeBarButtonsToAdd: ["drawline", "eraseshape"]
 		  };
 
@@ -270,9 +249,6 @@ myplot.on('plotly_relayout', (event) => {
 		        krogci.x = myJson['krogci_x'];
 		        krogci.y = myJson['krogci_y'];
 
-		        lineEndpoints.x = myJson['lineEndpoints_x'];
-		        lineEndpoints.y = myJson['lineEndpoints_y'];		        
-		        
 		        Plotly.redraw('plot_div');
 		        
 		        console.log('Length received: ' + trace1.x.length);

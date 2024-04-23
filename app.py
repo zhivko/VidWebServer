@@ -397,28 +397,30 @@ def calculateCrossSections(symbol):
             
             for crta in crteD[symbol]:
                 #print(crta.ime)
-                seg_2_x1 = crta.convertTimeToValue(crta.x0)
-                time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
-                #print(time1)
-                seg_2_y1 = crta.y0
-                seg_2_x2 = crta.convertTimeToValue(crta.x1)
-                time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
-                #print(time2)
-                seg_2_y2 = crta.y1
-
-                point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
-                point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
-                line2 = LineString((point_3, point_4))
-                set_precision(line2, precision)
-
-                x2 = np.array([seg_2_x1,seg_2_x2], dtype=float)
-                y2 = np.array([seg_2_y1,seg_2_y2], dtype=float)
-
-                if line1.intersects(line2):
-                    p_intersect = line1.intersection(line2)
-                    x = p_intersect.x
-                    y = p_intersect.y
-                    if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
+                
+                if crta.x0 != '' and crta.x1 != '': 
+                    seg_2_x1 = crta.convertTimeToValue(crta.x0)
+                    time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
+                    #print(time1)
+                    seg_2_y1 = crta.y0
+                    seg_2_x2 = crta.convertTimeToValue(crta.x1)
+                    time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
+                    #print(time2)
+                    seg_2_y2 = crta.y1
+    
+                    point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
+                    point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
+                    line2 = LineString((point_3, point_4))
+                    set_precision(line2, precision)
+    
+                    x2 = np.array([seg_2_x1,seg_2_x2], dtype=float)
+                    y2 = np.array([seg_2_y1,seg_2_y2], dtype=float)
+    
+                    if line1.intersects(line2):
+                        p_intersect = line1.intersection(line2)
+                        x = p_intersect.x
+                        y = p_intersect.y
+                        #if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
                         time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
                         krogci_x.append(time)
                         krogci_y.append(y)
@@ -549,23 +551,15 @@ def getPlotData(symbol):
     close = dfs[symbol].tail(howmany)['close'].astype(float).tolist()
     volume = dfs[symbol].tail(howmany)['volume'].astype(float).tolist()
     lines = [];
-    lineEndpoints_x = [];
-    lineEndpoints_y = [];
     if symbol in crteD.keys():
         for crta in crteD[symbol]:
             lines.append(crta.plotlyLine());
-            lineEndpoints_x.append(crta.x0);
-            lineEndpoints_y.append(crta.y0);
-            lineEndpoints_x.append(crta.x1);
-            lineEndpoints_y.append(crta.y1);
             
-    
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
 
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
-            'lineEndpoints_x': lineEndpoints_x, 'lineEndpoints_y': lineEndpoints_y,
             'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + timedelta(days=7)
             }
     
@@ -601,18 +595,13 @@ def scroll():
     close = df_range['close'].astype(float).tolist()
     volume = df_range['volume'].astype(float).tolist()
     lines = [];
-    lineEndpoints_x = [];
-    lineEndpoints_y = [];
     for crta in crteD[symbol]:
         lines.append(crta.plotlyLine());
-        lineEndpoints_x.append(crta.x1);
-        lineEndpoints_y.append(crta.y1);
     
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
     
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
-            'lineEndpoints_x': lineEndpoints_x, 'lineEndpoints_y': lineEndpoints_y,
            }, 200
     
 
