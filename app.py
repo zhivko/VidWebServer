@@ -562,18 +562,7 @@ def getPlotData(symbol):
     
     
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
-    
-    i=0
-    for krogec_x in krogci_x:
-        k_x1 = krogci_x[i] 
-        k_y1 = krogci_y[i]
-        k_x2 = krogci_x[i] 
-        k_y2 = krogci_y[i]
-        circle_json = {"type": 'circle', "xref": 'x', "yref": 'y', "x0": k_x1 ,"y0": k_y1, "x1": k_x2 ,"y1": k_y2, "opacity": 0.5, "fillcolor": 'blue', "line": {"color": 'blue'}}
-        i=i+1
-        lines.append(circle_json)
-    
-    
+
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
@@ -621,16 +610,6 @@ def scroll():
         lineEndpoints_y.append(crta.y1);
     
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
-    
-    i=0
-    for krogec_x in krogci_x:
-        k_x1 = krogci_x[i] 
-        k_y1 = krogci_y[i] 
-        k_x2 = krogci_x[i] 
-        k_y2 = krogci_y[i]
-        circle_json = {"type": 'circle', "xref": 'x', "yref": 'y', "x0": k_x1 ,"y0": k_y1, "x1": k_x2 ,"y1": k_y2, "opacity": 0.5, "fillcolor": 'blue', "line": {"color": 'blue'}}
-        i=i+1
-        lines.append(circle_json)
     
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
@@ -725,7 +704,7 @@ def addLine():
         else:
             app.logger.warn("Did not find crta: " + intI)
     else:
-        app.logger.warn("Unknow json: " + contentJson)
+        app.logger.warn("Unknown json: " + contentJson)
 
     app.logger.info("/addLine for symbol: " + symbol + "... Done.")
     return "ok", 200
