@@ -20,6 +20,7 @@ import locale
 from shapely.geometry import LineString, Point
 from shapely import set_precision
 from shapely import distance
+from threading import Thread, Lock
 
 import numpy as np
 import claudeTest
@@ -27,6 +28,8 @@ import yfinance as yahooFinance
 import sys
 from decimal import Decimal, getcontext
 
+from matplotlib import image 
+from matplotlib import pyplot as plt 
 
 from pybit.unified_trading import HTTP
 from pybit.unified_trading import WebSocket
@@ -64,6 +67,8 @@ crteD = dict()
 dfs = dict()
 claudRecomendation = dict()
 
+lock = Lock()
+
 
 symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT'}
 stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
@@ -73,6 +78,8 @@ dfs={}
 interval = 60
 locale.setlocale(locale.LC_ALL, 'sl_SI')
 
+
+fig = plt.figure()  # the figure will be reused later
 
 session = None
 if os.path.isfile("./authcreds.json"):
@@ -345,6 +352,24 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
         gmail(message, symbol)
 
 
+
+def intersection(X1, X2):
+    x = np.union1d(X1[0], X2[0])
+    y1 = np.interp(x, X1[0], X1[1])
+    y2 = np.interp(x, X2[0], X2[1])
+    dy = y1 - y2
+
+    ind = (dy[:-1] * dy[1:] < 0).nonzero()[0]
+    x1, x2 = x[ind], x[ind+1]
+    dy1, dy2 = dy[ind], dy[ind+1]
+    y11, y12 = y1[ind], y1[ind+1]
+    y21, y22 = y2[ind], y2[ind+1]
+
+    x_int = x1 - (x2 - x1) * dy1 / (dy2 - dy1)
+    y_int = y11 + (y12 - y11) * (x_int - x1) / (x2 - x1)
+    return x_int, y_int
+
+
 def calculateCrossSections(symbol):
     krogci_x=[]
     krogci_y=[]
@@ -362,32 +387,38 @@ def calculateCrossSections(symbol):
             point_1 = Point([seg_1_x1, seg_1_y1]) # x, y
             point_2 = Point([seg_1_x2, seg_1_y2]) # x, y
             line1 = LineString((point_1, point_2))
+            
+            x1 = np.array([seg_1_x1,seg_1_x2], dtype=float)
+            y1 = np.array([seg_1_y1,seg_1_y2], dtype=float)
+
+
+            
             set_precision(line1, precision)
             
             for crta in crteD[symbol]:
                 #print(crta.ime)
-                seg_2_x1 = crta.x0_timestamp
+                seg_2_x1 = crta.convertTimeToValue(crta.x0)
+                time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
+                #print(time1)
                 seg_2_y1 = crta.y0
-                seg_2_x2 = crta.x1_timestamp
+                seg_2_x2 = crta.convertTimeToValue(crta.x1)
+                time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
+                #print(time2)
                 seg_2_y2 = crta.y1
 
                 point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
                 point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
                 line2 = LineString((point_3, point_4))
                 set_precision(line2, precision)
-                
-                p_intersect = line1.intersection(line2)
-                if not p_intersect.is_empty:
+
+                x2 = np.array([seg_2_x1,seg_2_x2], dtype=float)
+                y2 = np.array([seg_2_y1,seg_2_y2], dtype=float)
+
+                if line1.intersects(line2):
                     p_intersect = line1.intersection(line2)
-                    
-                    dist1 = distance(line1, p_intersect)
-                    dist2 = distance(line2, p_intersect)
-                    
-                    print(dist1, dist2)
-                    
                     x = p_intersect.x
                     y = p_intersect.y
-                    if(x>seg_2_x1 and x<seg_2_x2 and y<seg_1_y2 and y>seg_1_y1):
+                    if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
                         time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
                         krogci_x.append(time)
                         krogci_y.append(y)
@@ -396,6 +427,8 @@ def calculateCrossSections(symbol):
         except Exception as e:
             app.logger.error("An exception occurred in calculateCrossSections.")
             app.logger.error(traceback.format_exc())
+            
+    
     return krogci_x, krogci_y, krogci_radius
 
 
@@ -525,8 +558,22 @@ def getPlotData(symbol):
             lineEndpoints_y.append(crta.y0);
             lineEndpoints_x.append(crta.x1);
             lineEndpoints_y.append(crta.y1);
+            
+    
     
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    
+    i=0
+    for krogec_x in krogci_x:
+        k_x1 = krogci_x[i] 
+        k_y1 = krogci_y[i]
+        k_x2 = krogci_x[i] 
+        k_y2 = krogci_y[i]
+        circle_json = {"type": 'circle', "xref": 'x', "yref": 'y', "x0": k_x1 ,"y0": k_y1, "x1": k_x2 ,"y1": k_y2, "opacity": 0.5, "fillcolor": 'blue', "line": {"color": 'blue'}}
+        i=i+1
+        lines.append(circle_json)
+    
+    
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
@@ -573,10 +620,20 @@ def scroll():
         lineEndpoints_x.append(crta.x1);
         lineEndpoints_y.append(crta.y1);
     
-    krogci_x, krogci_y = calculateCrossSections(symbol)
+    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    
+    i=0
+    for krogec_x in krogci_x:
+        k_x1 = krogci_x[i] 
+        k_y1 = krogci_y[i] 
+        k_x2 = krogci_x[i] 
+        k_y2 = krogci_y[i]
+        circle_json = {"type": 'circle', "xref": 'x', "yref": 'y', "x0": k_x1 ,"y0": k_y1, "x1": k_x2 ,"y1": k_y2, "opacity": 0.5, "fillcolor": 'blue', "line": {"color": 'blue'}}
+        i=i+1
+        lines.append(circle_json)
     
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 
-            'krogci_x': krogci_x, 'krogci_y': krogci_y,
+            'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
             'lineEndpoints_x': lineEndpoints_x, 'lineEndpoints_y': lineEndpoints_y,
            }, 200
     
@@ -643,7 +700,7 @@ def addLine():
     
     if 'type' in contentJson.keys() and contentJson['type']=='line':
         crta1=Crta(crteD[symbol], contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
-        crteD[symbol].append(crta1)
+        crteD[symbol].append(crta1) 
         writeCrte(symbol)
         calculateCrossSections(symbol)
     elif list(contentJson.keys())[0].startswith("shapes"):
@@ -656,11 +713,11 @@ def addLine():
         crta = getCrtaWithIndex(intI, symbol)
         if not crta is None:
             if 'shapes['+strI+'].x0' in list(contentJson.keys()):
-                crta.x0 = contentJson['shapes['+strI+'].x0']
+                crta.changeX0(contentJson['shapes['+strI+'].x0'])
             if 'shapes['+strI+'].y0' in list(contentJson.keys()):
                 crta.y0 = contentJson['shapes['+strI+'].y0']
             if 'shapes['+strI+'].x1' in list(contentJson.keys()):
-                crta.x1 = contentJson['shapes['+strI+'].x1']
+                crta.changeX1(contentJson['shapes['+strI+'].x1'])
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
             writeCrte(symbol)
