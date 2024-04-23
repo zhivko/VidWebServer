@@ -96,12 +96,21 @@ function refreshCrteLb()
 
 var krogci = {
 		mode: 'markers',
-	    type: 'scatter',
+		type: 'scatter',
 	    x: {{ plot_data.krogci_x }} ,
 	    y: {{ plot_data.krogci_y }} ,
+	    xperiodalignment: 'middle',
+	    align: 'center',
+	    layer: 'above',
+	    xref: 'container',
+	    yref: 'container',
+	    xanchor: 'center',
+	    yanchor: 'middle',
 	    marker: {
+    		symbol: 'hourglass-open',
+	        size: {{ plot_data.krogci_radius }},
+	        sizemode: 'points',	        
 	        color: 'rgba(17, 157, 255,0.5)',
-	        size: 14,
 	        line: {
 	          color: 'rgb(231, 99, 250)',
 	          width: 2
@@ -118,8 +127,10 @@ var lineEndpoints = {
 	    x: {{ plot_data.lineEndpoints_x }} ,
 	    y: {{ plot_data.lineEndpoints_y }} ,
 	    marker: {
+	    	symbol: 'cross',
 	        color: 'rgba(102, 153, 255, 0.2)',
 	        size: 6,
+	        sizemode: 'area',
 	        line: {
 	          color: 'rgb(231, 99, 250)',
 	          width: 1

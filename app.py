@@ -348,7 +348,8 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
 def calculateCrossSections(symbol):
     krogci_x=[]
     krogci_y=[]
-    precision = 1e-5
+    krogci_radius=[]
+    precision = 1e-15
     for index, row in dfs[symbol].tail(200).iterrows():
         loc = dfs[symbol].index.get_loc(row.name)
         try:
@@ -390,11 +391,12 @@ def calculateCrossSections(symbol):
                         time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
                         krogci_x.append(time)
                         krogci_y.append(y)
+                        krogci_radius.append(5)
                         #continue
         except Exception as e:
             app.logger.error("An exception occurred in calculateCrossSections.")
             app.logger.error(traceback.format_exc())
-    return krogci_x, krogci_y
+    return krogci_x, krogci_y, krogci_radius
 
 
 
@@ -506,7 +508,7 @@ def getPlotData(symbol):
     #df['time'] = df['timestamp'].apply(f)
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
-    howmany = 1000
+    howmany = 500
     x = dfs[symbol].tail(howmany).index.astype("str").tolist()
     open_ = dfs[symbol].tail(howmany)['open'].astype(float).tolist()
     high = dfs[symbol].tail(howmany)['high'].astype(float).tolist()
@@ -524,10 +526,10 @@ def getPlotData(symbol):
             lineEndpoints_x.append(crta.x1);
             lineEndpoints_y.append(crta.y1);
     
-    krogci_x, krogci_y = calculateCrossSections(symbol)
+    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'title': symbol, 
-            'krogci_x': krogci_x, 'krogci_y': krogci_y,
+            'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
             'lineEndpoints_x': lineEndpoints_x, 'lineEndpoints_y': lineEndpoints_y,
             'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + timedelta(days=7)
             }
@@ -555,7 +557,6 @@ def scroll():
     xaxis0_ = datetime.strptime(xaxis0, "%Y-%m-%d %H:%M:%S.%f").strftime('%Y-%m-%d %H:00:00')
     xaxis1_ = datetime.strptime(xaxis1, "%Y-%m-%d %H:%M:%S.%f").strftime('%Y-%m-%d %H:00:00')
         
-    
     df_range = dfs[symbol].loc[pd.Timestamp(xaxis0_):pd.Timestamp(xaxis1_)]
     
     x = df_range.index.astype("str").tolist()
