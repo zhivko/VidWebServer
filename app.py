@@ -375,7 +375,7 @@ def calculateCrossSections(symbol):
     krogci_y=[]
     krogci_radius=[]
     precision = 1e-15
-    for index, row in dfs[symbol].tail(200).iterrows():
+    for index, row in dfs[symbol].tail(50).iterrows():
         loc = dfs[symbol].index.get_loc(row.name)
         try:
             
@@ -541,7 +541,7 @@ def getPlotData(symbol):
     #df['time'] = df['timestamp'].apply(f)
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
-    howmany = 500
+    howmany = 2000
     x = dfs[symbol].tail(howmany).index.astype("str").tolist()
     open_ = dfs[symbol].tail(howmany)['open'].astype(float).tolist()
     high = dfs[symbol].tail(howmany)['high'].astype(float).tolist()
@@ -559,7 +559,6 @@ def getPlotData(symbol):
             lineEndpoints_x.append(crta.x1);
             lineEndpoints_y.append(crta.y1);
             
-    
     
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
 
