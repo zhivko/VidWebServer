@@ -11,15 +11,15 @@
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <div id="plot_div" style="width: 100%; height: 100%; position: relative; float: left; z-index:1000"></div>
-<div id="lines_div" style="width: 20%; float: left; position: absolute; z-index:1001; top: 0%; left: 20%;">
+<div id="lines_div" style="width: 8%; float: right; position: absolute; z-index:1001; top: 65%; right: 0%;">
 	<select name="list_box_crte" id="list_box_crte" size="8" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);"></select>
 </div>
-<div id="pairs_div" style="width: 6%; float: right; position: absolute; z-index:1001; top: 12%; right: 0%;">
+<div id="pairs_div" style="width: 8%; float: right; position: absolute; z-index:1001; top: 45%; right: 0%;">
 	<select id="list_box_pairs" name="list_box_pairs" size="8" onchange="myPairChangeEvent();">
 	{{ webpage_data.tickers_data }}
 	</select>
 </div>
-<div id="info" style="width: 10%; float: left; position: absolute; z-index:1001; top: 0%; left: 5%;">
+<div id="info" style="width: 8%; float: right; position: absolute; z-index:1001; top: 10%; right: 0%;">
 	<span style="font-family: 'Helvetica', 'Arial', sans-serif; font-size: 20px; color:blue"><strong>{{ webpage_data.price }}$</strong></span><br>
 	<span style="font-family: 'Helvetica', 'Arial', sans-serif; font-size: 20px; color:blue"><strong>{{ webpage_data.datetime }}</strong></span><br>
 	<span>{{ webpage_data.suggestion }}</span><br>
@@ -104,8 +104,6 @@ var krogci = {
 	    layer: 'above',
 	    xref: 'x',
 	    yref: 'y',
-	    xanchor: 'center',
-	    yanchor: 'middle',
 	    marker: {
     		symbol: 'circle',
 	        size: {{ plot_data.krogci_radius }},
@@ -117,7 +115,6 @@ var krogci = {
 	        }
 	      },
         showlegend: false
-	    
 };
 
 
@@ -129,6 +126,7 @@ var trace1 = {
 	    low: {{ plot_data.low }} ,
 	    close: {{ plot_data.close }} ,
 
+	    yaxis:"y1",
 	    type: 'candlestick',
 
 	    increasing: {line: {color: 'green'}},
@@ -139,21 +137,56 @@ var trace1 = {
 	    
 };
 
+var ind1_sto = {
+        type: "scatter",
+        x: {{ plot_data.x_axis }},
+        y: {{ plot_data.ind1_sto }},
+        marker: { color: 'blue'},
+        yaxis:"y3",
+	    name: 'Stochastic RSI sto',
+        line:{width:1},
+        showlegend: true
+        
+};
+
+var ind1_signal = {
+        type: "scatter",
+        x: {{ plot_data.x_axis }},
+        y: {{ plot_data.ind1_signal }},
+        marker: { color: 'red'},
+        yaxis:"y3",
+	    name: 'Stochastic RSI signal',
+        line:{width:1},
+        showlegend: true
+        
+};
+
+
 var traceVolume= {
         type: "bar",
         x: {{ plot_data.x_axis }},
         y: {{ plot_data.volume }},
         marker: { color: 'blue'},
-        yaxis:"y2",
 	    name: 'Volume',
-        line:{width:2},
+        line:{width:1},
+        yaxis: 'y2',
         showlegend: false
-        
 };
+
 
 var shapes = {{ plot_data.lines }}
 
 var layout = {
+	grid: {
+	    rows: 2,
+	    columns: 1,
+	    pattern: 'independent',
+	    subplots: [
+	        ['xy'],
+	        ['xy3']
+	     ],	    
+	    pattern: 'independent',
+	    roworder: 'bottom to top'},
 	shapes: shapes,
     title: "{{ plot_data.title }}",
     titlefont: {
@@ -162,7 +195,7 @@ var layout = {
             color: '#7f7f7f'
         },
     showlegend: true,
-    autoscale: false,
+    autoscale: true,
     clickmode: "event+select",
     
     xaxis: {
@@ -170,31 +203,41 @@ var layout = {
         autorange: false,
         range: ['{{ plot_data.range_start }}', '{{ plot_data.range_end }}']
     },
-    yaxis: {
-    	autorange: 'max',
-        title: 'USD$',
-        type: 'linear'
-    },
-    yaxis2: {
-    	visible: false,
-    	showgrid: false,
-        title: 'USD$',
+    yaxis3: {
+    	visible: true,
+    	showgrid: true,
+        title: 'Stochastic',
         type: 'linear',
+    	autorange: 'max',
+        side: 'left',
+        domain: [0.0, 0.28]
+    }, 
+    yaxis2: {
+        title: 'Volume',
         overlaying: 'y',
-        range: [0, (Math.max(...traceVolume.y)*5)],
+        range: [0, (Math.max(...traceVolume.y)*2)],
         side: 'right'
     },
+    yaxis: {
+    	autorange: 'max',
+    	visible: true,
+    	showgrid: true,
+        title: 'USD$',
+        type: 'linear',
+        domain: [0.33, 0.95]
+    },
+   
     margin: {
         l: 70,
-        r: 40,
-        b: 50,
-        t: 50,
-        pad: 4
-    }
+        r: 5,
+        b: 5,
+        t: 5,
+        pad: 5
+    },
 };
 {% endautoescape %}
 
-var data = [trace1, traceVolume, krogci ];
+var data = [trace1, traceVolume, ind1_sto, ind1_signal, krogci ];
 var config = {
 		  scrollZoom: true,
 		  showLink: true,

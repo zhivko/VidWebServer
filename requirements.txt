@@ -12,3 +12,4 @@ shapely
 TA-Lib
 gunicorn
 yfinance
+stock-indicators

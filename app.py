@@ -5,6 +5,8 @@
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 from flask import Flask, redirect, render_template, request, send_from_directory
+from stock_indicators import indicators
+from stock_indicators import Quote
 from flask import abort
 from threading import Thread
 from flask_debug import Debug
@@ -160,7 +162,8 @@ def getDataPath(symbol):
     
 def get_last_timestamp(symbol):
     if not symbol in dfs.keys():
-        return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        #return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        return int(dt.datetime(2024, 1, 1).timestamp()* 1000)
 
     return int(dfs.get(symbol).timestamp[-1:].values[0])
     
@@ -206,20 +209,39 @@ def pullNewData(symbol, start, interval):
         
         time.sleep(0.2)
         
-        
-        
         if not symbol in dfs.keys():
             dfs[symbol] = latest
         else:
             dfs[symbol] = pd.concat([dfs[symbol], latest])
-        
+            
         added=True
         app.logger.info("Appended data.")
         if len(latest) == 1:
             break
     
     if added:
+        
+        quotes_list = [
+            Quote(d,o,h,l,c,v) 
+            for d,o,h,l,c,v 
+            in zip(dfs[symbol].index, dfs[symbol]['open'], dfs[symbol]['high'], dfs[symbol]['low'], dfs[symbol]['close'], dfs[symbol]['volume'])
+        ]
+        
+        stoRsi = indicators.get_stoch_rsi(quotes_list, 14,14,3,1)        
+
+        stoch_rsi = []
+        signals = []
+        for stochRSIResult in stoRsi:
+            stoch_rsi.append(stochRSIResult.stoch_rsi)
+            signals.append(stochRSIResult.signal)
+
+
+        dfs[symbol]['stoRsi'] = stoch_rsi
+        dfs[symbol]['stoSignal'] = signals
+
         dfs.get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
+
+        
         dfs.get(symbol).to_csv(dataPath)
         
         app.logger.info("Saved to csv.")
@@ -500,7 +522,8 @@ def repeatPullNewData():
         currentHour = dt.datetime.now().hour
         app.logger.info("beep - hour changed: " + str(currentHour))
         for symbol in symbols.union(stocks):
-            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+            #start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+            start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
             if symbol in dfs.keys():
                 claudRecomendation[symbol] = getSuggestion(dfs[symbol])
                 start = get_last_timestamp(symbol)
@@ -550,6 +573,10 @@ def getPlotData(symbol):
     low = dfs[symbol].tail(howmany)['low'].astype(float).tolist()
     close = dfs[symbol].tail(howmany)['close'].astype(float).tolist()
     volume = dfs[symbol].tail(howmany)['volume'].astype(float).tolist()
+    
+    ind1 = dfs[symbol].tail(howmany)['stoRsi'].astype(float).tolist()
+    signal = dfs[symbol].tail(howmany)['stoSignal'].astype(float).tolist()
+
     lines = [];
     if symbol in crteD.keys():
         for crta in crteD[symbol]:
@@ -558,6 +585,8 @@ def getPlotData(symbol):
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
 
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
+            'ind1_sto': ind1,
+            'ind1_signal': signal,
             'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
             'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + timedelta(days=7)
@@ -728,7 +757,7 @@ def index():
     
     mydata = getDataPath(symbol) + os.sep + symbol + ".data"
     if not os.path.isfile(mydata):
-        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
         if thread2.is_alive():
             return "Thread for collecting data is running... Try later..."
         else:
