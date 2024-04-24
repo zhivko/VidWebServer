@@ -11,15 +11,15 @@
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <div id="plot_div" style="width: 100%; height: 100%; position: relative; float: left; z-index:1000"></div>
-<div id="lines_div" style="width: 6%; float: right; position: absolute; z-index:1001; top: 65%; right: 0%;">
+<div id="lines_div" style="width: 7%; float: right; position: absolute; z-index:1001; top: 65%; right: 0%;">
 	<select name="list_box_crte" id="list_box_crte" size="8" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);"></select>
 </div>
-<div id="pairs_div" style="width: 6%; float: right; position: absolute; z-index:1001; top: 45%; right: 0%;">
+<div id="pairs_div" style="width: 7%; float: right; position: absolute; z-index:1001; top: 45%; right: 0%;">
 	<select id="list_box_pairs" name="list_box_pairs" size="8" onchange="myPairChangeEvent();">
 	{{ webpage_data.tickers_data }}
 	</select>
 </div>
-<div id="info" style="width: 6%; float: right; position: absolute; z-index:1001; top: 10%; right: 0%;">
+<div id="info" style="width: 7%; float: right; position: absolute; z-index:1001; top: 15%; right: 0%;">
 	<span style="font-family: 'Helvetica', 'Arial', sans-serif; font-size: 20px; color:blue"><strong>{{ webpage_data.price }}$</strong></span><br>
 	<span style="font-family: 'Helvetica', 'Arial', sans-serif; font-size: 20px; color:blue"><strong>{{ webpage_data.datetime }}</strong></span><br>
 	<span>{{ webpage_data.suggestion }}</span><br>
@@ -194,6 +194,7 @@ var layout = {
             size: 18,
             color: '#7f7f7f'
         },
+    automargin: true,
     showlegend: true,
     autoscale: true,
     clickmode: "event+select",
@@ -210,7 +211,7 @@ var layout = {
         type: 'linear',
     	autorange: 'max',
         side: 'left',
-        domain: [0.0, 0.18]
+        domain: [0.0, 0.17]
     }, 
     yaxis2: {
         title: 'Volume',
@@ -225,15 +226,15 @@ var layout = {
     	showgrid: true,
         title: 'USD$',
         type: 'linear',
-        domain: [0.2, 0.95]
+        domain: [0.22, 1]
     },
    
     margin: {
         l: 70,
-        r: 10,
+        r: 25,
         b: 5,
-        t: 5,
-        pad: 5
+        t: 25,
+        pad: 0
     },
 };
 {% endautoescape %}
