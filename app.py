@@ -75,6 +75,8 @@ lock = Lock()
 symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT'}
 stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
 
+supply = 2100000
+
 lineCounter=0
 dfs={}
 interval = 60
@@ -162,8 +164,8 @@ def getDataPath(symbol):
     
 def get_last_timestamp(symbol):
     if not symbol in dfs.keys():
-        #return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        return int(dt.datetime(2024, 1, 1).timestamp()* 1000)
+        return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        #return int(dt.datetime(2024, 1, 1).timestamp()* 1000)
 
     return int(dfs.get(symbol).timestamp[-1:].values[0])
     
@@ -192,8 +194,12 @@ def pullNewData(symbol, start, interval):
             latest = format_data(response)
             
             latest = latest.rename_axis("timestamp")
+            latest.index = latest.index.tz_convert(None)
+            latest = latest.sort_index(inplace=False)
             
-            start = latest.iloc[0]['timestamp']
+            latest.index = latest.index.floor('s')
+            
+            start = latest.iloc[-1]['timestamp']
         else:
             response = session.get_kline(category='linear', 
                                          symbol=symbol, 
@@ -238,10 +244,11 @@ def pullNewData(symbol, start, interval):
 
         dfs[symbol]['stoRsi'] = stoch_rsi
         dfs[symbol]['stoSignal'] = signals
+        
+        dfs[symbol] = dfs[symbol].fillna(0) 
 
         dfs.get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
 
-        
         dfs.get(symbol).to_csv(dataPath)
         
         app.logger.info("Saved to csv.")
@@ -522,8 +529,8 @@ def repeatPullNewData():
         currentHour = dt.datetime.now().hour
         app.logger.info("beep - hour changed: " + str(currentHour))
         for symbol in symbols.union(stocks):
-            #start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-            start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
+            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+            #start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
             if symbol in dfs.keys():
                 claudRecomendation[symbol] = getSuggestion(dfs[symbol])
                 start = get_last_timestamp(symbol)
@@ -567,6 +574,7 @@ def getPlotData(symbol):
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
     howmany = 2000
+    
     x = dfs[symbol].tail(howmany).index.astype("str").tolist()
     open_ = dfs[symbol].tail(howmany)['open'].astype(float).tolist()
     high = dfs[symbol].tail(howmany)['high'].astype(float).tolist()
@@ -612,9 +620,22 @@ def scroll():
 
     xaxis0 = contentJson['xaxis.range[0]'];
     xaxis1 = contentJson['xaxis.range[1]'];
-    xaxis0_ = datetime.strptime(xaxis0, "%Y-%m-%d %H:%M:%S.%f").strftime('%Y-%m-%d %H:00:00')
-    xaxis1_ = datetime.strptime(xaxis1, "%Y-%m-%d %H:%M:%S.%f").strftime('%Y-%m-%d %H:00:00')
+    
+    if "." in xaxis0:
+        xaxis0_ = (datetime.strptime(xaxis0, "%Y-%m-%d %H:%M:%S.%f"))
+    else:
+        xaxis0_ = (datetime.strptime(xaxis0, "%Y-%m-%d %H:%M:%S"))
         
+    if "." in xaxis1:
+        xaxis1_ = (datetime.strptime(xaxis1, "%Y-%m-%d %H:%M:%S.%f"))
+    else:
+        xaxis1_ = (datetime.strptime(xaxis1, "%Y-%m-%d %H:%M:%S"))
+    
+
+
+    xaxis0_ = xaxis0_.strftime('%Y-%m-%d %H:00:00')
+    xaxis1_ = xaxis1_.strftime('%Y-%m-%d %H:00:00')
+    
     df_range = dfs[symbol].loc[pd.Timestamp(xaxis0_):pd.Timestamp(xaxis1_)]
     
     x = df_range.index.astype("str").tolist()
@@ -698,7 +719,7 @@ def addLine():
         crta1=Crta(crteD[symbol], contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
         crteD[symbol].append(crta1) 
         writeCrte(symbol)
-        calculateCrossSections(symbol)
+        return getPlotData(symbol), 200
     elif list(contentJson.keys())[0].startswith("shapes"):
         app.logger.info("Correcting one line...")
         x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
@@ -757,7 +778,7 @@ def index():
     
     mydata = getDataPath(symbol) + os.sep + symbol + ".data"
     if not os.path.isfile(mydata):
-        start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
+        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
         if thread2.is_alive():
             return "Thread for collecting data is running... Try later..."
         else:
@@ -788,6 +809,11 @@ def index():
                                         , 'price': f"{claudRecomendation[symbol][2]:,.2f}", 'datetime': claudRecomendation[symbol][3]})
 
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 #Debug(app)
 #app = Flask(__name__)
 #app.conf['DEBUG'] = True
@@ -802,6 +828,6 @@ else:
     #handlerConsole = logging.StreamHandler(sys.stdout)
     #app.logger.addHandler(handler)
     #app.logger.addHandler(handlerConsole)    
-    app.run(host = '127.0.0.1', port = '8000', debug=True)
+    app.run(host = '127.0.0.1', port = '8000', debug=True, threaded=False)
 
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
