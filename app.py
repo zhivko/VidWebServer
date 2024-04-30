@@ -716,7 +716,7 @@ def addLine():
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     
     if 'type' in contentJson.keys() and contentJson['type']=='line':
-        crta1=Crta(crteD[symbol], contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
+        crta1=Crta(len(crteD[symbol]), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
         crteD[symbol].append(crta1) 
         writeCrte(symbol)
         return getPlotData(symbol), 200
@@ -740,7 +740,7 @@ def addLine():
             writeCrte(symbol)
             return getPlotData(symbol), 200
         else:
-            app.logger.warn("Did not find crta: " + intI)
+            app.logger.warn("Did not find crta: " + str(intI))
     else:
         app.logger.warn("Unknown json: " + contentJson)
 
