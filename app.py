@@ -740,6 +740,7 @@ def addLine():
         crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
         crteD[symbol].append(crta) 
         writeCrte(symbol)
+        app.logger.info("Wrote new line for symbol: " + symbol + " " + crta.ime);
         return getPlotData(symbol), 200
     elif list(contentJson.keys())[0].startswith("shapes"):
         app.logger.info("Correcting one line...")
