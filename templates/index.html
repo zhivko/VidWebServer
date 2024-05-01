@@ -49,13 +49,20 @@ function listboxKeyDown(e)
 	        	shapes.splice(i,1);
 	        	
 	        	var http = new XMLHttpRequest();
+	        	http.onreadystatechange = function() {
+		        	if(http.readyState == 4 && http.status == 200) {
+						var myJson = JSON.parse(http.responseText);
+				        shapes = myJson['lines'];
+						refreshCrteLb();
+		        		Plotly.redraw('plot_div');
+		        	}
+	        	}
+	        	
 	        	var url = "/deleteLine?name=" + selectedValue + "&pair="+pair;
 	    		http.open("POST", url, true);
 	    		http.setRequestHeader("Content-type", "application/json; charset=utf-8");
 	    		http.send(JSON.stringify(shapes));
 	        	
-	    		Plotly.redraw('plot_div');
-	    		
 	    		break;
         	}
 		}
@@ -72,7 +79,12 @@ function myCrteChangeEvent()
         else
         	shapes[i].line.color = "#000000";
 	}
-    Plotly.redraw('plot_div');
+    
+    var update = {
+        'shapes': shapes
+    };
+    Plotly.restyle('plot_div', update);    
+    
 }
 
 

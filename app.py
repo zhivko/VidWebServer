@@ -714,7 +714,7 @@ def deleteLine():
             writeCrte(symbol)
 
     app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
-    return "ok", 200
+    return getPlotData(symbol), 200
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
