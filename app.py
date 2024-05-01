@@ -272,8 +272,9 @@ for symbol in symbols.union(stocks):
                 start = get_last_timestamp(symbol)
                 last_dt = datetime.fromtimestamp(start/1000)
                 duration = datetime.now() - last_dt
-                if duration.days > 1: 
-                    pullNewData(symbol, start, interval)
+                if duration.days > 1:
+                    app.logger.info(str(duration.days) + " days old data for " + symbol) 
+                    #pullNewData(symbol, start, interval)
             
 
 #crte = Crta[]
