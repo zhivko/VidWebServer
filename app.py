@@ -692,9 +692,9 @@ def deleteLine():
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
-    app.logger.info("Delete line for symbol: " + symbol + "...")
             
     line_name = request.args.get('name')
+    app.logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
     for crta in crteD[symbol]:
         if crta.ime == line_name:
             app.logger.info("Delete line with name: " + line_name + " on symbol: " + symbol)

@@ -294,10 +294,7 @@ myplot.on('plotly_relayout', (event) => {
 		        krogci.x = myJson['krogci_x'];
 		        krogci.y = myJson['krogci_y'];
 
-		        Plotly.redraw('plot_div');
-		        
 		        console.log('Length received: ' + trace1.x.length);
-		        
 				refreshCrteLb();
 	        }
     		Plotly.redraw('plot_div');
