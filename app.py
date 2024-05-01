@@ -404,6 +404,7 @@ def intersection(X1, X2):
 
 
 def calculateCrossSections(symbol):
+    app.logger.info("Calculating crossection...")
     krogci_x=[]
     krogci_y=[]
     krogci_radius=[]
@@ -464,6 +465,7 @@ def calculateCrossSections(symbol):
             app.logger.error(traceback.format_exc())
             
     
+    app.logger.info("Calculating crossection...Done.")
     return krogci_x, krogci_y, krogci_radius
 
 
