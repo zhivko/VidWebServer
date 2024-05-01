@@ -178,7 +178,7 @@ def pullNewData(symbol, start, interval):
     
     while True:
         app.logger.info(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
-            ' Collecting data for: ' + symbol + ' from ' + \
+            'Collecting data for: ' + symbol + ' from ' + \
             dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
 
         if symbol in stocks:
@@ -528,19 +528,24 @@ def repeatPullNewData():
     if dt.datetime.now().hour != currentHour:
         currentHour = dt.datetime.now().hour
         app.logger.info("beep - hour changed: " + str(currentHour))
-        for symbol in symbols.union(stocks):
-            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-            #start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
-            if symbol in dfs.keys():
-                claudRecomendation[symbol] = getSuggestion(dfs[symbol])
-                start = get_last_timestamp(symbol)
-            else:
-                claudRecomendation[symbol] = ""
+        try:
+            for symbol in symbols.union(stocks):
+                start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+                #start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
+                if symbol in dfs.keys():
+                    claudRecomendation[symbol] = getSuggestion(dfs[symbol])
+                    start = get_last_timestamp(symbol)
+                else:
+                    claudRecomendation[symbol] = ""
+    
+                pullNewData(symbol, start, interval)
+                
+                krogci_x, krogci_y = calculateCrossSections(symbol)
+                sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
+        except:
+            app.logger.error('Something went wrong retrieving data')
+            app.logger.error(traceback.format_exc())
 
-            pullNewData(symbol, start, interval)
-            
-            krogci_x, krogci_y = calculateCrossSections(symbol)
-            sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
             
     
     threading.Timer(20, repeatPullNewData).start()
