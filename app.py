@@ -582,7 +582,7 @@ def getNextIndex(symbol):
     if symbol in crteD.keys():
         if len(crteD[symbol])>0:
             for crta in crteD[symbol]:
-                if ret >= crta.i:
+                if ret < crta.i:
                     ret = crta.i
             ret = ret + 1
     return ret
