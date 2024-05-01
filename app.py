@@ -266,12 +266,15 @@ for symbol in symbols.union(stocks):
             f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
             dfs[symbol].index = dfs[symbol].timestamp.apply(f)
 
-            '''
+            
             start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
             if symbol in dfs.keys():
                 start = get_last_timestamp(symbol)
-            pullNewData(symbol, start, interval)
-            '''
+                last_dt = datetime.fromtimestamp(start/1000)
+                duration = datetime.now() - last_dt
+                if duration.days > 1: 
+                    pullNewData(symbol, start, interval)
+            
 
 #crte = Crta[]
 
@@ -832,9 +835,9 @@ if __name__ != '__main__':
 else:
     app.logger.setLevel(logging.INFO)  # Set log level to INFO
     #handler = logging.FileHandler('app.log')  # Log to a file
-    #handlerConsole = logging.StreamHandler(sys.stdout)
+    handlerConsole = logging.StreamHandler(sys.stdout)
     #app.logger.addHandler(handler)
-    #app.logger.addHandler(handlerConsole)    
+    app.logger.addHandler(handlerConsole)    
     app.run(host = '127.0.0.1', port = '8000', debug=True, threaded=False)
 
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
