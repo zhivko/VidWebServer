@@ -577,6 +577,16 @@ def getCrtaWithIndex(index, symbol):
             i=i+1
     return None
 
+def getNextIndex(symbol):
+    ret=0
+    if symbol in crteD.keys():
+        if len(crteD[symbol])>0:
+            for crta in crteD[symbol]:
+                if ret >= crta.i:
+                    ret = crta.i
+            ret = ret + 1
+    return ret
+
 def getPlotData(symbol):
     global crteD
     #df['time'] = df['timestamp'].apply(lambda x: str(x)[14:4])
@@ -727,8 +737,8 @@ def addLine():
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     
     if 'type' in contentJson.keys() and contentJson['type']=='line':
-        crta1=Crta(len(crteD[symbol]), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
-        crteD[symbol].append(crta1) 
+        crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
+        crteD[symbol].append(crta) 
         writeCrte(symbol)
         return getPlotData(symbol), 200
     elif list(contentJson.keys())[0].startswith("shapes"):
