@@ -343,18 +343,21 @@ if session != None:
     app.logger.info(tickers)
     tickers_data=""
 
+# load crte
+for symbol in symbols.union(stocks):
+    crtePath = getDataPath(symbol) + os.sep + "crte.data"
+    app.logger.info(crtePath)
+    if os.path.isfile(crtePath):
+        with open(crtePath, 'r') as f:
+            json_str = f.read()
+            crteD[symbol] = jsonpickle.decode(json_str)
+    else:
+        crte: List[Crta] = []
+        crteD[symbol] = crte
+
 
 def initialCheckOfData():
     for symbol in symbols.union(stocks):
-        crtePath = getDataPath(symbol) + os.sep + "crte.data"
-        app.logger.info(crtePath)
-        if os.path.isfile(crtePath):
-            with open(crtePath, 'r') as f:
-                json_str = f.read()
-                crteD[symbol] = jsonpickle.decode(json_str)
-        else:
-            crte: List[Crta] = []
-            crteD[symbol] = crte
         start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
         if symbol in dfs.keys():
             start = get_last_timestamp(symbol)
@@ -371,7 +374,10 @@ def initialCheckOfData():
                     app.logger.info(str(duration.days) + " days old data for " + symbol) 
                     pullNewData(symbol, start, interval)    
                 
-threading.Timer(0,initialCheckOfData).start() 
+threadInitialCheck = Thread(target = initialCheckOfData, args = ())
+threadInitialCheck.start()
+threadInitialCheck.join()
+ 
     
 
 def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
@@ -575,7 +581,7 @@ def threaded_function():
 thread = Thread(target = threaded_function, args = ())
 thread.start()
 thread.join()
-print("thread finished...exiting")
+
     
 
 
