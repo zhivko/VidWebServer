@@ -438,37 +438,38 @@ def calculateCrossSections(symbol):
             
             set_precision(line1, precision)
             
-            for crta in crteD[symbol]:
-                #print(crta.ime)
-                
-                if crta.x0 != '' and crta.x1 != '': 
-                    seg_2_x1 = crta.convertTimeToValue(crta.x0)
-                    time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
-                    #print(time1)
-                    seg_2_y1 = crta.y0
-                    seg_2_x2 = crta.convertTimeToValue(crta.x1)
-                    time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
-                    #print(time2)
-                    seg_2_y2 = crta.y1
-    
-                    point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
-                    point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
-                    line2 = LineString((point_3, point_4))
-                    set_precision(line2, precision)
-    
-                    x2 = np.array([seg_2_x1,seg_2_x2], dtype=float)
-                    y2 = np.array([seg_2_y1,seg_2_y2], dtype=float)
-    
-                    if line1.intersects(line2):
-                        p_intersect = line1.intersection(line2)
-                        x = p_intersect.x
-                        y = p_intersect.y
-                        #if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
-                        time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
-                        krogci_x.append(time)
-                        krogci_y.append(y)
-                        krogci_radius.append(10)
-                        #continue
+            if len(crteD[symbol])>0:
+                for crta in crteD[symbol]:
+                    #print(crta.ime)
+                    
+                    if crta.x0 != '' and crta.x1 != '': 
+                        seg_2_x1 = crta.convertTimeToValue(crta.x0)
+                        time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
+                        #print(time1)
+                        seg_2_y1 = crta.y0
+                        seg_2_x2 = crta.convertTimeToValue(crta.x1)
+                        time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
+                        #print(time2)
+                        seg_2_y2 = crta.y1
+        
+                        point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
+                        point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
+                        line2 = LineString((point_3, point_4))
+                        set_precision(line2, precision)
+        
+                        x2 = np.array([seg_2_x1,seg_2_x2], dtype=float)
+                        y2 = np.array([seg_2_y1,seg_2_y2], dtype=float)
+        
+                        if line1.intersects(line2):
+                            p_intersect = line1.intersection(line2)
+                            x = p_intersect.x
+                            y = p_intersect.y
+                            #if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
+                            time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
+                            krogci_x.append(time)
+                            krogci_y.append(y)
+                            krogci_radius.append(10)
+                            #continue
         except Exception as e:
             app.logger.error("An exception occurred in calculateCrossSections.")
             app.logger.error(traceback.format_exc())
