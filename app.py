@@ -178,7 +178,7 @@ def pullNewData(symbol, start, interval):
     
     while True:
         app.logger.info(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
-            'Collecting data for: ' + symbol + ' from ' + \
+            ' Collecting data for: ' + symbol + ' from ' + \
             dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
 
         if symbol in stocks:
@@ -267,16 +267,6 @@ for symbol in symbols.union(stocks):
             dfs[symbol].index = dfs[symbol].timestamp.apply(f)
 
             
-            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-            if symbol in dfs.keys():
-                start = get_last_timestamp(symbol)
-                last_dt = datetime.fromtimestamp(start/1000)
-                duration = datetime.now() - last_dt
-                if duration.days > 1:
-                    app.logger.info(str(duration.days) + " days old data for " + symbol) 
-                    #pullNewData(symbol, start, interval)
-            
-
 #crte = Crta[]
 
 def gmail(message, symbol):
@@ -352,18 +342,37 @@ if session != None:
     tickers = [asset['symbol'] for asset in result]
     app.logger.info(tickers)
     tickers_data=""
-    
-for symbol in symbols.union(stocks):
-    crtePath = getDataPath(symbol) + os.sep + "crte.data"
-    app.logger.info(crtePath)
-    if os.path.isfile(crtePath):
-        with open(crtePath, 'r') as f:
-            json_str = f.read()
-            crteD[symbol] = jsonpickle.decode(json_str)
-    else:
-        crte: List[Crta] = []
-        crteD[symbol] = crte
 
+
+def initialCheckOfData():
+    for symbol in symbols.union(stocks):
+        crtePath = getDataPath(symbol) + os.sep + "crte.data"
+        app.logger.info(crtePath)
+        if os.path.isfile(crtePath):
+            with open(crtePath, 'r') as f:
+                json_str = f.read()
+                crteD[symbol] = jsonpickle.decode(json_str)
+        else:
+            crte: List[Crta] = []
+            crteD[symbol] = crte
+        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        if symbol in dfs.keys():
+            start = get_last_timestamp(symbol)
+            last_dt = datetime.fromtimestamp(start/1000)
+            duration = 0
+            if symbol in symbols:
+                duration = (datetime.now() - last_dt).total_seconds() / 3600
+                if duration > 1:
+                    app.logger.info(str(duration) + " hours old data for " + symbol) 
+                    pullNewData(symbol, start, interval)    
+            elif symbol in stocks:
+                duration = datetime.now() - last_dt
+                if duration.days > 1:
+                    app.logger.info(str(duration.days) + " days old data for " + symbol) 
+                    pullNewData(symbol, start, interval)    
+                
+threading.Timer(0,initialCheckOfData).start() 
+    
 
 def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
     i=0;
@@ -555,6 +564,7 @@ def repeatPullNewData():
             
     
     threading.Timer(20, repeatPullNewData).start()
+    
     
 # function to create threads
 def threaded_function():
