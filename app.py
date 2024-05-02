@@ -546,7 +546,7 @@ def repeatPullNewData():
     
                 pullNewData(symbol, start, interval)
                 
-                krogci_x, krogci_y = calculateCrossSections(symbol)
+                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
                 sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
         except:
             app.logger.error('Something went wrong retrieving data')
