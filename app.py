@@ -777,10 +777,9 @@ def addLine():
         app.logger.info("Correcting one line...")
         x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
         strI = x.group(1)
-        app.logger.info("Correcting one line... strI: " + strI)
         intI=int(strI)
-        app.logger.info("Correcting one line... strI: " + str(intI))
         crta = getCrtaWithIndex(intI, symbol)
+        app.logger.info("Correcting one line " + crta.ime + " strI: " + str(intI))
         if not crta is None:
             if 'shapes['+strI+'].x0' in list(contentJson.keys()):
                 crta.changeX0(contentJson['shapes['+strI+'].x0'])
@@ -794,6 +793,9 @@ def addLine():
             return getPlotData(symbol), 200
         else:
             app.logger.warn("Did not find crta: " + str(intI))
+            
+        strJson = jsonpickle.encode(crteD[symbol], indent=2)
+        app.logger.info(strJson)
     else:
         app.logger.warn("Unknown json: " + contentJson)
 
