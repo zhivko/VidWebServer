@@ -4,7 +4,7 @@
 #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
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
-from flask import Flask, redirect, render_template, request, send_from_directory
+from flask import current_app, Flask, redirect, render_template, request, send_from_directory
 from stock_indicators import indicators
 from stock_indicators import Quote
 from flask import abort
@@ -57,7 +57,7 @@ from numpy.distutils.fcompiler import none
 from claudeTest import getSuggestion
 #from tkinter.constants import CURRENT
 #from pandas.conftest import datapath
-global lineCounter, dfs, interval, crteD
+#global lineCounter, dfs, interval, crteD
 
 
 app = Flask(__name__,
@@ -77,7 +77,6 @@ stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
 
 supply = 2100000
 
-lineCounter=0
 dfs={}
 interval = 60
 locale.setlocale(locale.LC_ALL, 'sl_SI')
@@ -359,6 +358,7 @@ for symbol in symbols.union(stocks):
 def initialCheckOfData():
     for symbol in symbols.union(stocks):
         start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        app.logger.info("Checking freshness of data: " + symbol + " ...")
         if symbol in dfs.keys():
             start = get_last_timestamp(symbol)
             last_dt = datetime.fromtimestamp(start/1000)
@@ -373,10 +373,11 @@ def initialCheckOfData():
                 if duration.days > 1:
                     app.logger.info(str(duration.days) + " days old data for " + symbol) 
                     pullNewData(symbol, start, interval)    
-                
+    app.logger.info("Checking done.")
+
 threadInitialCheck = Thread(target = initialCheckOfData, args = ())
 threadInitialCheck.start()
-threadInitialCheck.join()
+#threadInitialCheck.join()
  
     
 
@@ -644,10 +645,17 @@ def all_exception_handler(error):
     app.logger.error(str(error))
     app.logger.error(traceback.format_exc())
     
+    
+    
+app.config['dfs'] = dfs
+app.config['crteD'] = crteD
+app.config['interval'] = interval
+
 
 @app.route('/scroll', methods=['POST'])
 def scroll():
-    global crteD
+    crteD=app.config['crteD']
+    dfs=app.config['dfs']
     
     symbol = request.args.get('pair')
     if symbol==None:
@@ -661,11 +669,15 @@ def scroll():
     
     if "." in xaxis0:
         xaxis0_ = (datetime.strptime(xaxis0, "%Y-%m-%d %H:%M:%S.%f"))
+    elif len(xaxis0)==16:
+        xaxis0_ = (datetime.strptime(xaxis0, "%Y-%m-%d %H:%M"))
     else:
         xaxis0_ = (datetime.strptime(xaxis0, "%Y-%m-%d %H:%M:%S"))
         
     if "." in xaxis1:
         xaxis1_ = (datetime.strptime(xaxis1, "%Y-%m-%d %H:%M:%S.%f"))
+    elif len(xaxis1)==16:
+        xaxis1_ = (datetime.strptime(xaxis1, "%Y-%m-%d %H:%M"))
     else:
         xaxis1_ = (datetime.strptime(xaxis1, "%Y-%m-%d %H:%M:%S"))
     
@@ -716,6 +728,8 @@ def deleteLine():
     if remote_ip != '89.233.122.140':
         return "forbidden", 403
     '''
+    crteD=app.config['crteD']
+        
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
@@ -735,7 +749,7 @@ def deleteLine():
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
-    global crteD
+    crteD=app.config['crteD']
     '''
     remote_ip = request.headers.get('X-Forwarded-For')
     if remote_ip != '89.233.122.140':
@@ -796,6 +810,7 @@ def threaded_function2(symbol, start, interval):
     pullNewData(symbol, start, interval)
  
 thread2 = Thread()
+app.config['thread2'] = thread2
 
 '''
 @app.errorhandler(404)
@@ -810,7 +825,10 @@ def root():
 
 @app.route('/index.html')
 def index():
-    global thread2
+    dfs=app.config['dfs']
+    crteD=app.config['crteD']
+    thread2=app.config['thread2']
+
     symbol = request.args.get('pair')
     if(symbol == None or symbol==""):
         symbol = "BTCUSDT"
@@ -866,9 +884,9 @@ if __name__ != '__main__':
 else:
     app.logger.setLevel(logging.INFO)  # Set log level to INFO
     #handler = logging.FileHandler('app.log')  # Log to a file
-    handlerConsole = logging.StreamHandler(sys.stdout)
+    #handlerConsole = logging.StreamHandler(sys.stdout)
     #app.logger.addHandler(handler)
-    app.logger.addHandler(handlerConsole)    
+    #app.logger.addHandler(handlerConsole)    
     app.run(host = '127.0.0.1', port = '8000', debug=True, threaded=False)
 
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
