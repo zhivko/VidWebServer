@@ -790,12 +790,11 @@ def addLine():
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
             writeCrte(symbol)
+            strJson = jsonpickle.encode(crteD[symbol], indent=2)
+            app.logger.info(strJson)
             return getPlotData(symbol), 200
         else:
             app.logger.warn("Did not find crta: " + str(intI))
-            
-        strJson = jsonpickle.encode(crteD[symbol], indent=2)
-        app.logger.info(strJson)
     else:
         app.logger.warn("Unknown json: " + contentJson)
 
