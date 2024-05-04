@@ -771,6 +771,7 @@ def addLine():
         crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
         crteD[symbol].append(crta) 
         writeCrte(symbol)
+        app.config['crteD'] = crteD
         app.logger.info("Wrote new line for symbol: " + symbol + " " + crta.ime);
         return getPlotData(symbol), 200
     elif list(contentJson.keys())[0].startswith("shapes"):
@@ -792,6 +793,7 @@ def addLine():
             writeCrte(symbol)
             strJson = jsonpickle.encode(crteD[symbol], indent=2)
             app.logger.info(strJson)
+            app.config['crteD'] = crteD
             return getPlotData(symbol), 200
         else:
             app.logger.warn("Did not find crta: " + str(intI))
