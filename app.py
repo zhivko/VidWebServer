@@ -1,3 +1,7 @@
+
+# TODO: Implement https://www.giraycoskun.dev/blog/2023/12/18/sharing-data-in-a-flask-app-accross-gunicorn-workers/
+
+
 #https://flask.palletsprojects.com/en/3.0.x/installation/
 # pip install -r requirements.txt
 #flask run
