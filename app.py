@@ -69,10 +69,10 @@ crteD = dict()
 dfs = dict()
 claudRecomendation = dict()
 
-lock = Lock()
+dataLock = Lock()
 
 
-symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT'}
+symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT'}
 stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
 
 supply = 2100000
@@ -375,10 +375,6 @@ def initialCheckOfData():
                     pullNewData(symbol, start, interval)    
     app.logger.info("Checking done.")
 
-threadInitialCheck = Thread(target = initialCheckOfData, args = ())
-threadInitialCheck.start()
-#threadInitialCheck.join()
- 
     
 
 def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
@@ -386,7 +382,7 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
     text_data='';
     for x in krogci_x:
         text_data = text_data + \
-                'time:  ' + krogci_x[i] + '\n' + \
+                'time:  ' + x + '\n' + \
                 'price: ' + '{:0,.2f}'.format(krogci_y[i]) + ' $USD/BTC\n\n'
         i=i+1;
                       
@@ -412,8 +408,6 @@ def intersection(X1, X2):
     x1, x2 = x[ind], x[ind+1]
     dy1, dy2 = dy[ind], dy[ind+1]
     y11, y12 = y1[ind], y1[ind+1]
-    y21, y22 = y2[ind], y2[ind+1]
-
     x_int = x1 - (x2 - x1) * dy1 / (dy2 - dy1)
     y_int = y11 + (y12 - y11) * (x_int - x1) / (x2 - x1)
     return x_int, y_int
@@ -438,11 +432,6 @@ def calculateCrossSections(symbol):
             point_2 = Point([seg_1_x2, seg_1_y2]) # x, y
             line1 = LineString((point_1, point_2))
             
-            x1 = np.array([seg_1_x1,seg_1_x2], dtype=float)
-            y1 = np.array([seg_1_y1,seg_1_y2], dtype=float)
-
-
-            
             set_precision(line1, precision)
             
             if len(crteD[symbol])>0:
@@ -451,11 +440,11 @@ def calculateCrossSections(symbol):
                     
                     if crta.x0 != '' and crta.x1 != '': 
                         seg_2_x1 = crta.convertTimeToValue(crta.x0)
-                        time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
+                        #time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
                         #print(time1)
                         seg_2_y1 = crta.y0
                         seg_2_x2 = crta.convertTimeToValue(crta.x1)
-                        time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
+                        #time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
                         #print(time2)
                         seg_2_y2 = crta.y1
         
@@ -463,9 +452,6 @@ def calculateCrossSections(symbol):
                         point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
                         line2 = LineString((point_3, point_4))
                         set_precision(line2, precision)
-        
-                        x2 = np.array([seg_2_x1,seg_2_x2], dtype=float)
-                        y2 = np.array([seg_2_y1,seg_2_y2], dtype=float)
         
                         if line1.intersects(line2):
                             p_intersect = line1.intersection(line2)
@@ -475,10 +461,10 @@ def calculateCrossSections(symbol):
                             time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
                             krogci_x.append(time)
                             krogci_y.append(y)
-                            krogci_radius.append(10)
+                            krogci_radius.append(14)
                             #continue
         except Exception as e:
-            app.logger.error("An exception occurred in calculateCrossSections.")
+            app.logger.error("An exception occurred in calculateCrossSections:" + e.message + " " + e.args)
             app.logger.error(traceback.format_exc())
             
     
@@ -723,85 +709,82 @@ def writeCrte(symbol):
 
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
-    '''
-    remote_ip = request.headers.get('X-Forwarded-For')
-    if remote_ip != '89.233.122.140':
-        return "forbidden", 403
-    '''
-    crteD=app.config['crteD']
-        
-    symbol = request.args.get('pair')
-    if symbol==None:
-        symbol = "BTCUSDT"
+    with dataLock:
+        crteD=app.config['crteD']
             
-    line_name = request.args.get('name')
-    app.logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
-    for crta in crteD[symbol]:
-        if crta.ime == line_name:
-            app.logger.info("Delete line with name: " + line_name + " on symbol: " + symbol)
-            app.logger.info("Length before: " + str(len(crteD[symbol])))
-            crteD[symbol].remove(crta);
-            app.logger.info("Length after:  " + str(len(crteD[symbol])))
-            writeCrte(symbol)
-
-    app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
-    return getPlotData(symbol), 200
+        symbol = request.args.get('pair')
+        if symbol==None:
+            symbol = "BTCUSDT"
+                
+        line_name = request.args.get('name')
+        app.logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
+        for crta in crteD[symbol]:
+            if crta.ime == line_name:
+                app.logger.info("Delete line with name: " + line_name + " on symbol: " + symbol)
+                app.logger.info("Length before: " + str(len(crteD[symbol])))
+                crteD[symbol].remove(crta);
+                app.logger.info("Length after:  " + str(len(crteD[symbol])))
+                writeCrte(symbol)
+    
+        app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
+        return getPlotData(symbol), 200
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
-    crteD=app.config['crteD']
-    '''
-    remote_ip = request.headers.get('X-Forwarded-For')
-    if remote_ip != '89.233.122.140':
-        return "forbidden", 403
-    '''
-        
-    symbol = request.args.get('pair')
-    if symbol==None:
-        symbol = "BTCUSDT"
-    
-    app.logger.info("/addLine for symbol: " + symbol)
+    with dataLock:
+        crteD=app.config['crteD']
+        '''
+        remote_ip = request.headers.get('X-Forwarded-For')
+        if remote_ip != '89.233.122.140':
+            return "forbidden", 403
+        '''
             
-    contentJson = request.json
-    app.logger.info(contentJson)
-
-    crtePath = getDataPath(symbol) + os.sep + "crte.data"
+        symbol = request.args.get('pair')
+        if symbol==None:
+            symbol = "BTCUSDT"
+        
+        app.logger.info("/addLine for symbol: " + symbol)
+                
+        contentJson = request.json
+        app.logger.info(contentJson)
     
-    if 'type' in contentJson.keys() and contentJson['type']=='line':
-        crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
-        crteD[symbol].append(crta) 
-        writeCrte(symbol)
-        app.config['crteD'] = crteD
-        app.logger.info("Wrote new line for symbol: " + symbol + " " + crta.ime);
-        return getPlotData(symbol), 200
-    elif list(contentJson.keys())[0].startswith("shapes"):
-        app.logger.info("Correcting one line...")
-        x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
-        strI = x.group(1)
-        intI=int(strI)
-        crta = getCrtaWithIndex(intI, symbol)
-        app.logger.info("Correcting one line " + crta.ime + " strI: " + str(intI))
-        if not crta is None:
-            if 'shapes['+strI+'].x0' in list(contentJson.keys()):
-                crta.changeX0(contentJson['shapes['+strI+'].x0'])
-            if 'shapes['+strI+'].y0' in list(contentJson.keys()):
-                crta.y0 = contentJson['shapes['+strI+'].y0']
-            if 'shapes['+strI+'].x1' in list(contentJson.keys()):
-                crta.changeX1(contentJson['shapes['+strI+'].x1'])
-            if 'shapes['+strI+'].y1' in list(contentJson.keys()):
-                crta.y1 = contentJson['shapes['+strI+'].y1']
+        crtePath = getDataPath(symbol) + os.sep + "crte.data"
+        
+        if 'type' in contentJson.keys() and contentJson['type']=='line':
+            crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
+            crteD[symbol].append(crta) 
             writeCrte(symbol)
-            strJson = jsonpickle.encode(crteD[symbol], indent=2)
-            app.logger.info(strJson)
             app.config['crteD'] = crteD
+            app.logger.info("Wrote new line for symbol: " + symbol + " " + crta.ime);
             return getPlotData(symbol), 200
+        elif list(contentJson.keys())[0].startswith("shapes"):
+            app.logger.info("Correcting one line...")
+            x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
+            strI = x.group(1)
+            intI=int(strI)
+            crta = getCrtaWithIndex(intI, symbol)
+            app.logger.info("Correcting one line " + crta.ime + " strI: " + str(intI))
+            if not crta is None:
+                if 'shapes['+strI+'].x0' in list(contentJson.keys()):
+                    crta.changeX0(contentJson['shapes['+strI+'].x0'])
+                if 'shapes['+strI+'].y0' in list(contentJson.keys()):
+                    crta.y0 = contentJson['shapes['+strI+'].y0']
+                if 'shapes['+strI+'].x1' in list(contentJson.keys()):
+                    crta.changeX1(contentJson['shapes['+strI+'].x1'])
+                if 'shapes['+strI+'].y1' in list(contentJson.keys()):
+                    crta.y1 = contentJson['shapes['+strI+'].y1']
+                writeCrte(symbol)
+                strJson = jsonpickle.encode(crteD[symbol], indent=2)
+                app.logger.info(strJson)
+                app.config['crteD'] = crteD
+                return getPlotData(symbol), 200
+            else:
+                app.logger.warn("Did not find crta: " + str(intI))
         else:
-            app.logger.warn("Did not find crta: " + str(intI))
-    else:
-        app.logger.warn("Unknown json: " + contentJson)
-
-    app.logger.info("/addLine for symbol: " + symbol + "... Done.")
-    return "ok", 200
+            app.logger.warn("Unknown json: " + contentJson)
+    
+        app.logger.info("/addLine for symbol: " + symbol + "... Done.")
+        return "ok", 200
 
 '''
 @app.route('/favicon.ico')
@@ -828,48 +811,46 @@ def root():
 
 @app.route('/index.html')
 def index():
-    dfs=app.config['dfs']
-    crteD=app.config['crteD']
-    thread2=app.config['thread2']
-
-    symbol = request.args.get('pair')
-    if(symbol == None or symbol==""):
-        symbol = "BTCUSDT"
-    
-    mydata = getDataPath(symbol) + os.sep + symbol + ".data"
-    if not os.path.isfile(mydata):
-        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        if thread2.is_alive():
-            return "Thread for collecting data is running... Try later..."
-        else:
-            thread2 = Thread(target = threaded_function2, args = (symbol, start, interval))
-            thread2.start()
-            return "Thread for collecting data has been started... Try later..."
+    global thread2
+    with dataLock:
+        symbol = request.args.get('pair')
+        if(symbol == None or symbol==""):
+            symbol = "BTCUSDT"
         
-    else:
-        if not symbol in dfs.keys():
-            dfs[symbol] = pd.read_csv(mydata)
-            dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
-            dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
-            f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-            dfs[symbol].index = dfs[symbol].timestamp.apply(f)
+        mydata = getDataPath(symbol) + os.sep + symbol + ".data"
+        if not os.path.isfile(mydata):
+            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+            if thread2.is_alive():
+                return "Thread for collecting data is running... Try later..."
+            else:
+                thread2 = Thread(target = threaded_function2, args = (symbol, start, interval))
+                thread2.start()
+                return "Thread for collecting data has been started... Try later..."
+            
+        else:
+            if not symbol in dfs.keys():
+                dfs[symbol] = pd.read_csv(mydata)
+                dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
+                dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
+                f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+                dfs[symbol].index = dfs[symbol].timestamp.apply(f)
+        
+        app.logger.info(dfs[symbol])
+        plot_data1 = getPlotData(symbol)
+        
+        tickers_data = " "
+        for symb in symbols.union(stocks):
+            tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
+        
+        claudRecomendation[symbol] = getSuggestion(dfs[symbol])
+        if claudRecomendation[symbol] != None and len(claudRecomendation[symbol])>0:
+            return render_template('./index.html', plot_data=plot_data1, 
+                                   webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol, 'suggestion': claudRecomendation[symbol][0], 'explanation': claudRecomendation[symbol][1]
+                                                , 'price': f"{claudRecomendation[symbol][2]:,.2f}", 'datetime': claudRecomendation[symbol][3]})
     
-    app.logger.info(dfs[symbol])
-    plot_data1 = getPlotData(symbol)
     
-    tickers_data = " "
-    for symb in symbols.union(stocks):
-        tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
-    
-    claudRecomendation[symbol] = getSuggestion(dfs[symbol])
-    if claudRecomendation[symbol] != None and len(claudRecomendation[symbol])>0:
         return render_template('./index.html', plot_data=plot_data1, 
-                               webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol, 'suggestion': claudRecomendation[symbol][0], 'explanation': claudRecomendation[symbol][1]
-                                            , 'price': f"{claudRecomendation[symbol][2]:,.2f}", 'datetime': claudRecomendation[symbol][3]})
-
-
-    return render_template('./index.html', plot_data=plot_data1, 
-                           webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol})
+                               webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol})
 
 @app.route('/favicon.ico')
 def favicon():
@@ -879,17 +860,21 @@ def favicon():
 #Debug(app)
 #app = Flask(__name__)
 #app.conf['DEBUG'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
     
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger('gunicorn.error')
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
-else:
+
+    
+if __name__ == '__main__':
     app.logger.setLevel(logging.INFO)  # Set log level to INFO
     #handler = logging.FileHandler('app.log')  # Log to a file
     #handlerConsole = logging.StreamHandler(sys.stdout)
     #app.logger.addHandler(handler)
     #app.logger.addHandler(handlerConsole)    
-    app.run(host = '127.0.0.1', port = '8000', debug=True, threaded=False)
-
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+    app.run(host = '127.0.0.1', port = '8000', debug=False, threaded=False)
+    threadInitialCheck = Thread(target = initialCheckOfData, args = ())
+    threadInitialCheck.start()
+#threadInitialCheck.join()
