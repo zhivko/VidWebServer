@@ -63,17 +63,16 @@ from claudeTest import getSuggestion
 #from pandas.conftest import datapath
 #global lineCounter, dfs, interval, crteD
 
+from DataStorageSingleton import DataStorageSingleton
+
+dataStorageSingleton: DataStorageSingleton
 
 app = Flask(__name__,
             static_folder='./static',
             template_folder='./templates')
 
 
-crteD = dict()
-dfs = dict()
 claudRecomendation = dict()
-
-dataLock = Lock()
 
 
 symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT'}
@@ -81,7 +80,6 @@ stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
 
 supply = 2100000
 
-dfs={}
 interval = 60
 locale.setlocale(locale.LC_ALL, 'sl_SI')
 
@@ -166,15 +164,14 @@ def getDataPath(symbol):
         return os.path.realpath(path);
     
 def get_last_timestamp(symbol):
-    if not symbol in dfs.keys():
+    if not symbol in dataStorageSingleton.get_dfs().keys():
         return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
         #return int(dt.datetime(2024, 1, 1).timestamp()* 1000)
 
-    return int(dfs.get(symbol).timestamp[-1:].values[0])
+    return int(dataStorageSingleton.get_dfs().get(symbol).timestamp[-1:].values[0])
     
 
 def pullNewData(symbol, start, interval):
-    global dfs
     added = False
     
     dataPath = getDataPath(symbol) + os.sep + symbol + '.data'
@@ -218,10 +215,10 @@ def pullNewData(symbol, start, interval):
         
         time.sleep(0.2)
         
-        if not symbol in dfs.keys():
-            dfs[symbol] = latest
+        if not symbol in dataStorageSingleton.get_dfs().keys():
+            dataStorageSingleton.get_dfs()[symbol] = latest
         else:
-            dfs[symbol] = pd.concat([dfs[symbol], latest])
+            dataStorageSingleton.get_dfs()[symbol] = pd.concat([dataStorageSingleton.get_dfs()[symbol], latest])
             
         added=True
         app.logger.info("Appended data.")
@@ -233,7 +230,7 @@ def pullNewData(symbol, start, interval):
         quotes_list = [
             Quote(d,o,h,l,c,v) 
             for d,o,h,l,c,v 
-            in zip(dfs[symbol].index, dfs[symbol]['open'], dfs[symbol]['high'], dfs[symbol]['low'], dfs[symbol]['close'], dfs[symbol]['volume'])
+            in zip(dataStorageSingleton.get_dfs()[symbol].index, dataStorageSingleton.get_dfs()[symbol]['open'], dataStorageSingleton.get_dfs()[symbol]['high'], dataStorageSingleton.get_dfs()[symbol]['low'], dataStorageSingleton.get_dfs()[symbol]['close'], dataStorageSingleton.get_dfs()[symbol]['volume'])
         ]
         
         stoRsi = indicators.get_stoch_rsi(quotes_list, 14,14,3,1)        
@@ -245,31 +242,18 @@ def pullNewData(symbol, start, interval):
             signals.append(stochRSIResult.signal)
 
 
-        dfs[symbol]['stoRsi'] = stoch_rsi
-        dfs[symbol]['stoSignal'] = signals
+        dataStorageSingleton.get_dfs()[symbol]['stoRsi'] = stoch_rsi
+        dataStorageSingleton.get_dfs()[symbol]['stoSignal'] = signals
         
-        dfs[symbol] = dfs[symbol].fillna(0) 
+        dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].fillna(0) 
 
-        dfs.get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
+        dataStorageSingleton.get_dfs().get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
 
-        dfs.get(symbol).to_csv(dataPath)
+        dataStorageSingleton.get_dfs().get(symbol).to_csv(dataPath)
         
         app.logger.info("Saved to csv.")
 
 # try load data
-jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-
-for symbol in symbols.union(stocks):
-    dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
-    if not symbol in dfs.keys():
-        if os.path.isfile(dataPath):
-            dfs[symbol] = pd.read_csv(dataPath)
-            dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
-            dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
-            f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-            dfs[symbol].index = dfs[symbol].timestamp.apply(f)
-
-            
 #crte = Crta[]
 
 def gmail(message, symbol):
@@ -323,47 +307,11 @@ def obv(data):
     return pd.Series(obv, index=data.index)
 
 
-'''
-# test retrieving of tsla and btcusdt
-testSymbols = ['TSLA', 'BTCUSDT']
-for symbol in testSymbols:
-    start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-    if symbol in dfs.keys():
-        claudRecomendation[symbol] = getSuggestion(dfs[symbol])
-        start = get_last_timestamp(symbol)
-    else:
-        claudRecomendation[symbol] = ""
-    
-    pullNewData(symbol, start, interval)
-sys.exit(0)    
-# test retrieving of tsla and btcusdt
-'''
-
-if session != None:
-    result = session.get_tickers(category="linear").get('result')['list']
-    # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
-    tickers = [asset['symbol'] for asset in result]
-    app.logger.info(tickers)
-    tickers_data=""
-
-# load crte
-for symbol in symbols.union(stocks):
-    crtePath = getDataPath(symbol) + os.sep + "crte.data"
-    app.logger.info(crtePath)
-    if os.path.isfile(crtePath):
-        with open(crtePath, 'r') as f:
-            json_str = f.read()
-            crteD[symbol] = jsonpickle.decode(json_str)
-    else:
-        crte: List[Crta] = []
-        crteD[symbol] = crte
-
-
 def initialCheckOfData():
     for symbol in symbols.union(stocks):
         start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
         app.logger.info("Checking freshness of data: " + symbol + " ...")
-        if symbol in dfs.keys():
+        if symbol in dataStorageSingleton.get_dfs().keys():
             start = get_last_timestamp(symbol)
             last_dt = datetime.fromtimestamp(start/1000)
             duration = 0
@@ -423,14 +371,14 @@ def calculateCrossSections(symbol):
     krogci_y=[]
     krogci_radius=[]
     precision = 1e-15
-    for index, row in dfs[symbol].tail(50).iterrows():
-        loc = dfs[symbol].index.get_loc(row.name)
+    for index, row in dataStorageSingleton.get_dfs()[symbol].tail(50).iterrows():
+        loc = dataStorageSingleton.get_dfs()[symbol].index.get_loc(row.name)
         try:
             
-            seg_1_x1 = dfs[symbol].iloc[loc].timestamp
-            seg_1_y1 = dfs[symbol].iloc[loc].low
-            seg_1_x2 = dfs[symbol].iloc[loc].timestamp
-            seg_1_y2 = dfs[symbol].iloc[loc].high
+            seg_1_x1 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].timestamp
+            seg_1_y1 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].low
+            seg_1_x2 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].timestamp
+            seg_1_y2 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].high
 
             point_1 = Point([seg_1_x1, seg_1_y1]) # x, y
             point_2 = Point([seg_1_x2, seg_1_y2]) # x, y
@@ -438,8 +386,8 @@ def calculateCrossSections(symbol):
             
             set_precision(line1, precision)
             
-            if len(crteD[symbol])>0:
-                for crta in crteD[symbol]:
+            if len(dataStorageSingleton.get_crteD()[symbol])>0:
+                for crta in dataStorageSingleton.get_crteD()[symbol]:
                     #print(crta.ime)
                     
                     if crta.x0 != '' and crta.x1 != '': 
@@ -545,8 +493,8 @@ def repeatPullNewData():
             for symbol in symbols.union(stocks):
                 start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
                 #start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
-                if symbol in dfs.keys():
-                    claudRecomendation[symbol] = getSuggestion(dfs[symbol])
+                if symbol in dataStorageSingleton.get_dfs().keys():
+                    claudRecomendation[symbol] = getSuggestion(dataStorageSingleton.get_dfs()[symbol])
                     start = get_last_timestamp(symbol)
                 else:
                     claudRecomendation[symbol] = ""
@@ -578,8 +526,8 @@ thread.join()
 
 def getCrtaWithIndex(index, symbol):
     i=0
-    if symbol in crteD.keys():
-        for crta in crteD[symbol]:
+    if symbol in dataStorageSingleton.get_crteD().keys():
+        for crta in dataStorageSingleton.get_crteD()[symbol]:
             if i==index:
                 return crta
             i=i+1
@@ -587,16 +535,15 @@ def getCrtaWithIndex(index, symbol):
 
 def getNextIndex(symbol):
     ret=0
-    if symbol in crteD.keys():
-        if len(crteD[symbol])>0:
-            for crta in crteD[symbol]:
+    if symbol in dataStorageSingleton.get_crteD().keys():
+        if len(dataStorageSingleton.get_crteD()[symbol])>0:
+            for crta in dataStorageSingleton.get_crteD()[symbol]:
                 if ret < crta.i:
                     ret = crta.i
             ret = ret + 1
     return ret
 
 def getPlotData(symbol):
-    global crteD
     #df['time'] = df['timestamp'].apply(lambda x: str(x)[14:4])
     #f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
     #df['time'] = df['timestamp'].apply(f)
@@ -604,29 +551,33 @@ def getPlotData(symbol):
     #x = df['timestamp'].index.astype("str").tolist()
     howmany = 2000
     
-    x = dfs[symbol].tail(howmany).index.astype("str").tolist()
-    open_ = dfs[symbol].tail(howmany)['open'].astype(float).tolist()
-    high = dfs[symbol].tail(howmany)['high'].astype(float).tolist()
-    low = dfs[symbol].tail(howmany)['low'].astype(float).tolist()
-    close = dfs[symbol].tail(howmany)['close'].astype(float).tolist()
-    volume = dfs[symbol].tail(howmany)['volume'].astype(float).tolist()
+    x = dataStorageSingleton.get_dfs()[symbol].tail(howmany).index.astype("str").tolist()
+    open_ = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['open'].astype(float).tolist()
+    high = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['high'].astype(float).tolist()
+    low = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['low'].astype(float).tolist()
+    close = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['close'].astype(float).tolist()
+    volume = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['volume'].astype(float).tolist()
     
-    ind1 = dfs[symbol].tail(howmany)['stoRsi'].astype(float).tolist()
-    signal = dfs[symbol].tail(howmany)['stoSignal'].astype(float).tolist()
+    ind1 = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['stoRsi'].astype(float).tolist()
+    signal = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['stoSignal'].astype(float).tolist()
 
     lines = [];
-    if symbol in crteD.keys():
-        for crta in crteD[symbol]:
+    if symbol in dataStorageSingleton.get_crteD().keys():
+        for crta in dataStorageSingleton.get_crteD()[symbol]:
             lines.append(crta.plotlyLine());
             
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    
+    r_s = dataStorageSingleton.get_dfs()[symbol].iloc[-int(howmany/2)].name
+    r_e = dataStorageSingleton.get_dfs()[symbol].iloc[-1].name + timedelta(days=7)
 
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'ind1_sto': ind1,
             'ind1_signal': signal,
             'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
-            'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + timedelta(days=7)
+            'range_start': r_s, 
+            'range_end': r_e
             }
     
 
@@ -637,15 +588,10 @@ def all_exception_handler(error):
     
     
     
-app.config['dfs'] = dfs
-app.config['crteD'] = crteD
-app.config['interval'] = interval
-
-
 @app.route('/scroll', methods=['POST'])
 def scroll():
-    crteD=app.config['crteD']
-    dfs=app.config['dfs']
+    crteD=dataStorageSingleton.get_crteD()
+    dfs=dataStorageSingleton.get_dfs()
     
     symbol = request.args.get('pair')
     if symbol==None:
@@ -676,7 +622,7 @@ def scroll():
     xaxis0_ = xaxis0_.strftime('%Y-%m-%d %H:00:00')
     xaxis1_ = xaxis1_.strftime('%Y-%m-%d %H:00:00')
     
-    df_range = dfs[symbol].loc[pd.Timestamp(xaxis0_):pd.Timestamp(xaxis1_)]
+    df_range = dataStorageSingleton.get_dfs()[symbol].loc[pd.Timestamp(xaxis0_):pd.Timestamp(xaxis1_)]
     
     x = df_range.index.astype("str").tolist()
     open_ = df_range['open'].astype(float).tolist()
@@ -699,7 +645,7 @@ def writeCrte(symbol):
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     try:
         with open(crtePath,'w') as f:
-            strJson = jsonpickle.encode(crteD[symbol], indent=2)
+            strJson = jsonpickle.encode(dataStorageSingleton.get_crteD()[symbol], indent=2)
             f.write(strJson)
             app.logger.info("Wrote crte for symbol: " + symbol)
              
@@ -713,82 +659,80 @@ def writeCrte(symbol):
 
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
-    with dataLock:
-        crteD=app.config['crteD']
+    dataStorageSingleton.get_crteD()
+        
+    symbol = request.args.get('pair')
+    if symbol==None:
+        symbol = "BTCUSDT"
             
-        symbol = request.args.get('pair')
-        if symbol==None:
-            symbol = "BTCUSDT"
-                
-        line_name = request.args.get('name')
-        app.logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
-        for crta in crteD[symbol]:
-            if crta.ime == line_name:
-                app.logger.info("Delete line with name: " + line_name + " on symbol: " + symbol)
-                app.logger.info("Length before: " + str(len(crteD[symbol])))
-                crteD[symbol].remove(crta);
-                app.logger.info("Length after:  " + str(len(crteD[symbol])))
-                writeCrte(symbol)
-    
-        app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
-        return getPlotData(symbol), 200
+    line_name = request.args.get('name')
+    app.logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
+    for crta in dataStorageSingleton.get_crteD()[symbol]:
+        if crta.ime == line_name:
+            app.logger.info("Delete line with name: " + line_name + " on symbol: " + symbol)
+            app.logger.info("Length before: " + str(len(dataStorageSingleton.get_crteD()[symbol])))
+            dataStorageSingleton.get_crteD()[symbol].remove(crta);
+            app.logger.info("Length after:  " + str(len(dataStorageSingleton.get_crteD()[symbol])))
+            writeCrte(symbol)
+
+    app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
+    return getPlotData(symbol), 200
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
-    with dataLock:
-        crteD=app.config['crteD']
-        '''
-        remote_ip = request.headers.get('X-Forwarded-For')
-        if remote_ip != '89.233.122.140':
-            return "forbidden", 403
-        '''
+    crteD=app.config['crteD']
+    '''
+    remote_ip = request.headers.get('X-Forwarded-For')
+    if remote_ip != '89.233.122.140':
+        return "forbidden", 403
+    '''
+        
+    symbol = request.args.get('pair')
+    if symbol==None:
+        symbol = "BTCUSDT"
+    
+    app.logger.info("/addLine for symbol: " + symbol)
             
-        symbol = request.args.get('pair')
-        if symbol==None:
-            symbol = "BTCUSDT"
-        
-        app.logger.info("/addLine for symbol: " + symbol)
-                
-        contentJson = request.json
-        app.logger.info(contentJson)
+    contentJson = request.json
+    app.logger.info(contentJson)
+
+    crtePath = getDataPath(symbol) + os.sep + "crte.data"
     
-        crtePath = getDataPath(symbol) + os.sep + "crte.data"
-        
-        if 'type' in contentJson.keys() and contentJson['type']=='line':
-            crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
-            crteD[symbol].append(crta) 
+    if 'type' in contentJson.keys() and contentJson['type']=='line':
+        crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
+        crteD[symbol].append(crta) 
+        writeCrte(symbol)
+        app.config['crteD'] = crteD
+        app.logger.info("Wrote new line for symbol: " + symbol + " " + crta.ime);
+        return getPlotData(symbol), 200
+    elif list(contentJson.keys())[0].startswith("shapes"):
+        app.logger.info("Correcting one line...")
+        x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
+        strI = x.group(1)
+        intI=int(strI)
+        crta = getCrtaWithIndex(intI, symbol)
+        app.logger.info("Correcting one line " + crta.ime + " strI: " + str(intI))
+        if not crta is None:
+            if 'shapes['+strI+'].x0' in list(contentJson.keys()):
+                crta.changeX0(contentJson['shapes['+strI+'].x0'])
+            if 'shapes['+strI+'].y0' in list(contentJson.keys()):
+                crta.y0 = contentJson['shapes['+strI+'].y0']
+            if 'shapes['+strI+'].x1' in list(contentJson.keys()):
+                crta.changeX1(contentJson['shapes['+strI+'].x1'])
+            if 'shapes['+strI+'].y1' in list(contentJson.keys()):
+                crta.y1 = contentJson['shapes['+strI+'].y1']
             writeCrte(symbol)
+            strJson = jsonpickle.encode(crteD[symbol], indent=2)
+            app.logger.info(strJson)
             app.config['crteD'] = crteD
-            app.logger.info("Wrote new line for symbol: " + symbol + " " + crta.ime);
             return getPlotData(symbol), 200
-        elif list(contentJson.keys())[0].startswith("shapes"):
-            app.logger.info("Correcting one line...")
-            x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
-            strI = x.group(1)
-            intI=int(strI)
-            crta = getCrtaWithIndex(intI, symbol)
-            app.logger.info("Correcting one line " + crta.ime + " strI: " + str(intI))
-            if not crta is None:
-                if 'shapes['+strI+'].x0' in list(contentJson.keys()):
-                    crta.changeX0(contentJson['shapes['+strI+'].x0'])
-                if 'shapes['+strI+'].y0' in list(contentJson.keys()):
-                    crta.y0 = contentJson['shapes['+strI+'].y0']
-                if 'shapes['+strI+'].x1' in list(contentJson.keys()):
-                    crta.changeX1(contentJson['shapes['+strI+'].x1'])
-                if 'shapes['+strI+'].y1' in list(contentJson.keys()):
-                    crta.y1 = contentJson['shapes['+strI+'].y1']
-                writeCrte(symbol)
-                strJson = jsonpickle.encode(crteD[symbol], indent=2)
-                app.logger.info(strJson)
-                app.config['crteD'] = crteD
-                return getPlotData(symbol), 200
-            else:
-                app.logger.warn("Did not find crta: " + str(intI))
         else:
-            app.logger.warn("Unknown json: " + contentJson)
-    
-        app.logger.info("/addLine for symbol: " + symbol + "... Done.")
-        return "ok", 200
+            app.logger.warn("Did not find crta: " + str(intI))
+    else:
+        app.logger.warn("Unknown json: " + contentJson)
+
+    app.logger.info("/addLine for symbol: " + symbol + "... Done.")
+    return "ok", 200
 
 '''
 @app.route('/favicon.ico')
@@ -816,45 +760,44 @@ def root():
 @app.route('/index.html')
 def index():
     global thread2
-    with dataLock:
-        symbol = request.args.get('pair')
-        if(symbol == None or symbol==""):
-            symbol = "BTCUSDT"
-        
-        mydata = getDataPath(symbol) + os.sep + symbol + ".data"
-        if not os.path.isfile(mydata):
-            start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-            if thread2.is_alive():
-                return "Thread for collecting data is running... Try later..."
-            else:
-                thread2 = Thread(target = threaded_function2, args = (symbol, start, interval))
-                thread2.start()
-                return "Thread for collecting data has been started... Try later..."
-            
+    symbol = request.args.get('pair')
+    if(symbol == None or symbol==""):
+        symbol = "BTCUSDT"
+    
+    mydata = getDataPath(symbol) + os.sep + symbol + ".data"
+    if not os.path.isfile(mydata):
+        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
+        if thread2.is_alive():
+            return "Thread for collecting data is running... Try later..."
         else:
-            if not symbol in dfs.keys():
-                dfs[symbol] = pd.read_csv(mydata)
-                dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
-                dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
-                f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-                dfs[symbol].index = dfs[symbol].timestamp.apply(f)
+            thread2 = Thread(target = threaded_function2, args = (symbol, start, interval))
+            thread2.start()
+            return "Thread for collecting data has been started... Try later..."
         
-        app.logger.info(dfs[symbol])
-        plot_data1 = getPlotData(symbol)
-        
-        tickers_data = " "
-        for symb in symbols.union(stocks):
-            tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
-        
-        claudRecomendation[symbol] = getSuggestion(dfs[symbol])
-        if claudRecomendation[symbol] != None and len(claudRecomendation[symbol])>0:
-            return render_template('./index.html', plot_data=plot_data1, 
-                                   webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol, 'suggestion': claudRecomendation[symbol][0], 'explanation': claudRecomendation[symbol][1]
-                                                , 'price': f"{claudRecomendation[symbol][2]:,.2f}", 'datetime': claudRecomendation[symbol][3]})
+    else:
+        if not symbol in dataStorageSingleton.get_dfs().keys():
+            dataStorageSingleton.get_dfs()[symbol] = pd.read_csv(mydata)
+            dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].drop(['timestamp'], axis=1)
+            dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].rename(columns={"timestamp.1": "timestamp"})
+            f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+            dataStorageSingleton.get_dfs()[symbol].index = dataStorageSingleton.get_dfs()[symbol].timestamp.apply(f)
     
+    app.logger.info(dataStorageSingleton.get_dfs()[symbol])
+    plot_data1 = getPlotData(symbol)
     
+    tickers_data = " "
+    for symb in symbols.union(stocks):
+        tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
+    
+    claudRecomendation[symbol] = getSuggestion(dataStorageSingleton.get_dfs()[symbol])
+    if claudRecomendation[symbol] != None and len(claudRecomendation[symbol])>0:
         return render_template('./index.html', plot_data=plot_data1, 
-                               webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol})
+                               webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol, 'suggestion': claudRecomendation[symbol][0], 'explanation': claudRecomendation[symbol][1]
+                                            , 'price': f"{claudRecomendation[symbol][2]:,.2f}", 'datetime': claudRecomendation[symbol][3]})
+
+
+    return render_template('./index.html', plot_data=plot_data1, 
+                           webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol})
 
 @app.route('/favicon.ico')
 def favicon():
@@ -864,6 +807,8 @@ def favicon():
 #Debug(app)
 #app = Flask(__name__)
 #app.conf['DEBUG'] = True
+#threadInitialCheck.join()
+
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
     
 if __name__ != '__main__':
@@ -873,12 +818,44 @@ if __name__ != '__main__':
 
     
 if __name__ == '__main__':
+    dataStorageSingleton = DataStorageSingleton()
     app.logger.setLevel(logging.INFO)  # Set log level to INFO
     #handler = logging.FileHandler('app.log')  # Log to a file
     #handlerConsole = logging.StreamHandler(sys.stdout)
     #app.logger.addHandler(handler)
     #app.logger.addHandler(handlerConsole)    
-    app.run(host = '127.0.0.1', port = '8000', debug=False, threaded=False)
     threadInitialCheck = Thread(target = initialCheckOfData, args = ())
     threadInitialCheck.start()
-#threadInitialCheck.join()
+
+    jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
+    for symbol in symbols.union(stocks):
+        dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
+        if not symbol in dataStorageSingleton.get_dfs().keys():
+            if os.path.isfile(dataPath):
+                dataStorageSingleton.get_dfs()[symbol] = pd.read_csv(dataPath)
+                dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].drop(['timestamp'], axis=1)
+                dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].rename(columns={"timestamp.1": "timestamp"})
+                f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+                dataStorageSingleton.get_dfs()[symbol].index = dataStorageSingleton.get_dfs()[symbol].timestamp.apply(f)
+
+
+    if session != None:
+        result = session.get_tickers(category="linear").get('result')['list']
+        # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
+        tickers = [asset['symbol'] for asset in result]
+        app.logger.info(tickers)
+        tickers_data=""
+    
+    # load crte
+    for symbol in symbols.union(stocks):
+        crtePath = getDataPath(symbol) + os.sep + "crte.data"
+        app.logger.info(crtePath)
+        if os.path.isfile(crtePath):
+            with open(crtePath, 'r') as f:
+                json_str = f.read()
+                dataStorageSingleton.get_crteD()[symbol] = jsonpickle.decode(json_str)
+        else:
+            crte: List[Crta] = []
+            dataStorageSingleton.get_crteD()[symbol] = crte    
+    
+    app.run(host = '127.0.0.1', port = '8000', debug=False, threaded=False)
