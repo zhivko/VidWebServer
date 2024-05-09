@@ -14,7 +14,7 @@ class Crta(object):
     ime=''
 
     def convertTimeToValue(self, val):
-        print("convertTimeToValue: " + val)
+        #print("convertTimeToValue: " + val)
         if val.count(':')==1:
             val = val + ":0.0"
         if not "." in val:

@@ -414,6 +414,8 @@ def intersection(X1, X2):
 
 
 def calculateCrossSections(symbol):
+    global crteD, dfs
+
     app.logger.info("Calculating crossection...")
     krogci_x=[]
     krogci_y=[]
@@ -464,7 +466,7 @@ def calculateCrossSections(symbol):
                             krogci_radius.append(14)
                             #continue
         except Exception as e:
-            app.logger.error("An exception occurred in calculateCrossSections:" + e.message + " " + e.args)
+            app.logger.error("An exception occurred in calculateCrossSections:" + e.args[0])
             app.logger.error(traceback.format_exc())
             
     
@@ -534,6 +536,7 @@ ws.kline_stream(
 currentHour = dt.datetime.now().hour
 def repeatPullNewData():
     global currentHour, symbols
+    global crteD, dfs
     if dt.datetime.now().hour != currentHour:
         currentHour = dt.datetime.now().hour
         app.logger.info("beep - hour changed: " + str(currentHour))
@@ -639,15 +642,9 @@ def all_exception_handler(error):
     
     
     
-app.config['dfs'] = dfs
-app.config['crteD'] = crteD
-app.config['interval'] = interval
-
-
 @app.route('/scroll', methods=['POST'])
 def scroll():
-    crteD=app.config['crteD']
-    dfs=app.config['dfs']
+    global crteD, dfs
     
     symbol = request.args.get('pair')
     if symbol==None:
@@ -690,7 +687,13 @@ def scroll():
     for crta in crteD[symbol]:
         lines.append(crta.plotlyLine());
     
-    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    krogci_x = []
+    krogci_y = []
+    krogci_radius = []
+    try:
+        krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    except:
+        print("Error calculating exception.")
     
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
@@ -737,8 +740,8 @@ def deleteLine():
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
+    global crteD
     with dataLock:
-        crteD=app.config['crteD']
         '''
         remote_ip = request.headers.get('X-Forwarded-For')
         if remote_ip != '89.233.122.140':
