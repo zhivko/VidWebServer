@@ -12,10 +12,9 @@ class Crta(object):
     y1 = 0
     i=0
     ime=''
-    symbol=''
 
     def convertTimeToValue(self, val):
-        #print("convertTimeToValue: " + val)
+        print("convertTimeToValue: " + val)
         if val.count(':')==1:
             val = val + ":0.0"
         if not "." in val:
@@ -23,7 +22,7 @@ class Crta(object):
         #"%Y-%m-%dT%H:%M:%S.%fZ"
         return datetime.strptime(val, "%Y-%m-%d %H:%M:%S.%f").timestamp()*1000
     
-    def __init__(self, i, x0, y0, x1, y1, symbol):
+    def __init__(self, i, x0, y0, x1, y1):
         #local = pytz.utc
         self.i = i
         self.changeX0(x0)
@@ -31,7 +30,6 @@ class Crta(object):
         self.changeX1(x1)
         self.y1 = y1
         self.ime= 'crta_' + str(round(time.time() * 1000))
-        self.symbol = symbol
     
     def changeX0(self, x0):
         self.x0 = x0
