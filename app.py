@@ -44,10 +44,6 @@ import pybit
 
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-import smtplib
 from pathlib import Path
 from string import Template
 from numpy.distutils.fcompiler import none
@@ -97,31 +93,6 @@ def getDataPath(symbol):
 # try load data
 #crte = Crta[]
 
-def gmail(message, symbol):
-    global creds
-    gmailEmail = creds['gmailEmail']
-    gmailPwd = creds['gmailPwd']
-
-
-    try:
-        app.logger.info('sending email...')
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.ehlo()
-        server.starttls()
-        server.login(gmailEmail,gmailPwd)
-        #server.set_debuglevel(1)
-        
-        message["Subject"] = symbol
-        message["From"] = gmailEmail
-        
-        message["To"] = creds['emailTo'] #', '.join(["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"])
-        
-        server.send_message(message)
-        server.close()
-        app.logger.info('sending email...Done.')
-    except:
-        app.logger.error("failed to send mail")
-        app.logger.error(traceback.format_exc())
 
 '''
 message = MIMEMultipart("alternative")
@@ -152,24 +123,6 @@ def obv(data):
 
     
 
-def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
-    i=0;
-    text_data='';
-    for x in krogci_x:
-        text_data = text_data + \
-                'time:  ' + x + '\n' + \
-                'price: ' + '{:0,.2f}'.format(krogci_y[i]) + ' $USD/BTC\n\n'
-        i=i+1;
-                      
-            
-    if text_data!='':
-        text = 'https://crypto.zhivko.eu/index.html?pair='+symbol+'\n';
-        text = text + 'Crossing happened for ' + symbol + '\n'
-        text = text + text_data
-        message = MIMEMultipart("alternative")
-        part1 = MIMEText(text, "plain")
-        message.attach(part1)
-        gmail(message, symbol)
 
 
 
@@ -187,62 +140,6 @@ def intersection(X1, X2):
     y_int = y11 + (y12 - y11) * (x_int - x1) / (x2 - x1)
     return x_int, y_int
 
-
-def calculateCrossSections(symbol):
-    app.logger.info("Calculating crossection for symbol: " + symbol + " ...")
-    krogci_x=[]
-    krogci_y=[]
-    krogci_radius=[]
-    precision = 1e-15
-    for index, row in dataStorageSingleton.get_dfs()[symbol].tail(50).iterrows():
-        loc = dataStorageSingleton.get_dfs()[symbol].index.get_loc(row.name)
-        try:
-            
-            seg_1_x1 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].timestamp
-            seg_1_y1 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].low
-            seg_1_x2 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].timestamp
-            seg_1_y2 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].high
-
-            point_1 = Point([seg_1_x1, seg_1_y1]) # x, y
-            point_2 = Point([seg_1_x2, seg_1_y2]) # x, y
-            line1 = LineString((point_1, point_2))
-            
-            set_precision(line1, precision)
-            
-            for crta in dataStorageSingleton.get_crteDforSymbol(symbol):
-                #print(crta.ime)
-                if crta.x0 != '' and crta.x1 != '': 
-                    seg_2_x1 = crta.convertTimeToValue(crta.x0)
-                    #time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
-                    #print(time1)
-                    seg_2_y1 = crta.y0
-                    seg_2_x2 = crta.convertTimeToValue(crta.x1)
-                    #time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
-                    #print(time2)
-                    seg_2_y2 = crta.y1
-    
-                    point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
-                    point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
-                    line2 = LineString((point_3, point_4))
-                    set_precision(line2, precision)
-    
-                    if line1.intersects(line2):
-                        p_intersect = line1.intersection(line2)
-                        x = p_intersect.x
-                        y = p_intersect.y
-                        #if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
-                        time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
-                        krogci_x.append(time)
-                        krogci_y.append(y)
-                        krogci_radius.append(14)
-                        #continue
-        except Exception as e:
-            app.logger.error("An exception occurred in calculateCrossSections:" + e.args)
-            app.logger.error(traceback.format_exc())
-            
-    
-    app.logger.info("Calculating crossection...Done.")
-    return krogci_x, krogci_y, krogci_radius
 
 
 
@@ -304,43 +201,10 @@ ws.kline_stream(
 )
 '''
 
-currentHour = dt.datetime.now().hour
-def repeatPullNewData():
-    global currentHour
-    if dt.datetime.now().hour != currentHour:
-        currentHour = dt.datetime.now().hour
-        app.logger.info("beep - hour changed: " + str(currentHour))
-        try:
-            for symbol in DataStorageSingleton._instance.symbols.union(DataStorageSingleton._instance.stocks):
-                start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-                #start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
-                if symbol in dataStorageSingleton.get_dfs().keys():
-                    claudRecomendation[symbol] = getSuggestion(dataStorageSingleton.get_dfs()[symbol])
-                    start = get_last_timestamp(symbol)
-                else:
-                    claudRecomendation[symbol] = ""
-    
-                pullNewData(symbol, start, interval)
-                
-                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
-                sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
-        except:
-            app.logger.error('Something went wrong retrieving data')
-            app.logger.error(traceback.format_exc())
 
-            
-    
-    threading.Timer(20, repeatPullNewData).start()
     
     
-# function to create threads
-def threaded_function():
-    repeatPullNewData()
- 
- 
-thread = Thread(target = threaded_function, args = ())
-thread.start()
-thread.join()
+
 
     
 
@@ -398,11 +262,18 @@ def getPlotData(symbol):
     ind1 = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['stoRsi'].astype(float).tolist()
     signal = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['stoSignal'].astype(float).tolist()
 
-    lines = [];
+    lines = []
     for crta in dataStorageSingleton.get_crteDforSymbol(symbol):
         lines.append(crta.plotlyLine());
             
-    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    krogci_x = []
+    krogci_y = []
+    krogci_radius = []
+    try:
+        krogci_x, krogci_y, krogci_radius = dataStorageSingleton.calculateCrossSections(symbol)
+    except:
+        print("Error calculating dataStorageSingleton.calculateCrossSections")
+         
     
     dt1 = datetime.utcfromtimestamp(dataStorageSingleton.get_dfs()[symbol].iloc[-int(howmany/2)].timestamp/1000)
     dt2 = datetime.utcfromtimestamp(dataStorageSingleton.get_dfs()[symbol].iloc[-1].timestamp/1000)
@@ -474,7 +345,7 @@ def scroll():
     for crta in crteD[symbol]:
         lines.append(crta.plotlyLine());
     
-    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    krogci_x, krogci_y, krogci_radius = dataStorageSingleton.calculateCrossSections(symbol)
     
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
@@ -554,7 +425,7 @@ def favicon():
     return send_from_directory(app.static_folder, 'favicon.ico') 
 '''    
 def threaded_function2(symbol, start, interval):
-    pullNewData(symbol, start, interval)
+    DataStorageSingleton._instance.pullNewData(symbol, start, interval)
  
 thread2 = Thread()
 app.config['thread2'] = thread2
@@ -583,7 +454,7 @@ def index():
         if thread2.is_alive():
             return "Thread for collecting data is running... Try later..."
         else:
-            thread2 = Thread(target = threaded_function2, args = (symbol, start, interval))
+            thread2 = Thread(target = threaded_function2, args = (symbol, start))
             thread2.start()
             return "Thread for collecting data has been started... Try later..."
         
