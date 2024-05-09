@@ -13,3 +13,4 @@ TA-Lib
 gunicorn
 yfinance
 stock-indicators
+uvicorn 
