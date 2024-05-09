@@ -503,12 +503,12 @@ if __name__ != '__main__':
 
     
 if __name__ == '__main__':
+    app.logger.info("In main...")
     dataStorageSingleton = DataStorageSingleton(app)
+    app.logger.info("In main...Singleton created...")
     app.logger.setLevel(logging.INFO)  # Set log level to INFO
     #handler = logging.FileHandler('app.log')  # Log to a file
     #handlerConsole = logging.StreamHandler(sys.stdout)
     #app.logger.addHandler(handler)
     #app.logger.addHandler(handlerConsole)    
-
-
     app.run(host = '127.0.0.1', port = '8000', debug=False, threaded=False)
