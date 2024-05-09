@@ -1,8 +1,8 @@
 
-#https://flask.palletsprojects.com/en/3.0.x/installation/
+# https://flask.palletsprojects.com/en/3.0.x/installation/
 # pip install -r requirements.txt
-#flask run
-#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
+# flask run
+# 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
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 from flask import current_app, Flask, redirect, render_template, request, send_from_directory
@@ -502,9 +502,9 @@ if __name__ != '__main__':
     app.logger.setLevel(gunicorn_logger.level)
 
     
+dataStorageSingleton = DataStorageSingleton(app)
 if __name__ == '__main__':
     app.logger.info("In main...")
-    dataStorageSingleton = DataStorageSingleton(app)
     app.logger.info("In main...Singleton created...")
     app.logger.setLevel(logging.INFO)  # Set log level to INFO
     #handler = logging.FileHandler('app.log')  # Log to a file
