@@ -615,7 +615,13 @@ def getPlotData(symbol):
         for crta in crteD[symbol]:
             lines.append(crta.plotlyLine());
             
-    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    krogci_x = []
+    krogci_y = []
+    krogci_radius = []
+    try:
+        krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    except:
+        print("Error calculating exception.")
 
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'ind1_sto': ind1,
