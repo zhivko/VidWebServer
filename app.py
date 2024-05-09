@@ -1,7 +1,4 @@
 
-# TODO: Implement https://www.giraycoskun.dev/blog/2023/12/18/sharing-data-in-a-flask-app-accross-gunicorn-workers/ 
-
-
 #https://flask.palletsprojects.com/en/3.0.x/installation/
 # pip install -r requirements.txt
 #flask run
@@ -49,8 +46,8 @@ import jsonpickle
 from typing import List
 import pybit
 
-from datetime import datetime, timezone, tzinfo
-import pytz
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
@@ -177,9 +174,9 @@ def pullNewData(symbol, start, interval):
     dataPath = getDataPath(symbol) + os.sep + symbol + '.data'
     
     while True:
-        app.logger.info(dt.datetime.now(pytz.timezone('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
+        app.logger.info(dt.datetime.now(ZoneInfo('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
             ' Collecting data for: ' + symbol + ' from ' + \
-            dt.datetime.fromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
+            dt.datetime.utcfromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
 
         if symbol in stocks:
             if start==1230764400000:
@@ -386,37 +383,35 @@ def calculateCrossSections(symbol):
             
             set_precision(line1, precision)
             
-            if len(dataStorageSingleton.get_crteD()[symbol])>0:
-                for crta in dataStorageSingleton.get_crteD()[symbol]:
-                    #print(crta.ime)
-                    
-                    if crta.x0 != '' and crta.x1 != '': 
-                        seg_2_x1 = crta.convertTimeToValue(crta.x0)
-                        #time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
-                        #print(time1)
-                        seg_2_y1 = crta.y0
-                        seg_2_x2 = crta.convertTimeToValue(crta.x1)
-                        #time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
-                        #print(time2)
-                        seg_2_y2 = crta.y1
-        
-                        point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
-                        point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
-                        line2 = LineString((point_3, point_4))
-                        set_precision(line2, precision)
-        
-                        if line1.intersects(line2):
-                            p_intersect = line1.intersection(line2)
-                            x = p_intersect.x
-                            y = p_intersect.y
-                            #if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
-                            time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
-                            krogci_x.append(time)
-                            krogci_y.append(y)
-                            krogci_radius.append(14)
-                            #continue
+            for crta in dataStorageSingleton.get_crteDforSymbol(symbol):
+                #print(crta.ime)
+                if crta.x0 != '' and crta.x1 != '': 
+                    seg_2_x1 = crta.convertTimeToValue(crta.x0)
+                    #time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
+                    #print(time1)
+                    seg_2_y1 = crta.y0
+                    seg_2_x2 = crta.convertTimeToValue(crta.x1)
+                    #time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
+                    #print(time2)
+                    seg_2_y2 = crta.y1
+    
+                    point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
+                    point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
+                    line2 = LineString((point_3, point_4))
+                    set_precision(line2, precision)
+    
+                    if line1.intersects(line2):
+                        p_intersect = line1.intersection(line2)
+                        x = p_intersect.x
+                        y = p_intersect.y
+                        #if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
+                        time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
+                        krogci_x.append(time)
+                        krogci_y.append(y)
+                        krogci_radius.append(14)
+                        #continue
         except Exception as e:
-            app.logger.error("An exception occurred in calculateCrossSections:" + e.message + " " + e.args)
+            app.logger.error("An exception occurred in calculateCrossSections:" + e.args)
             app.logger.error(traceback.format_exc())
             
     
@@ -533,6 +528,22 @@ def getCrtaWithIndex(index, symbol):
             i=i+1
     return None
 
+def writeCrtaWithIndex(index, symbol, crta: Crta):
+    i=0
+    if symbol in dataStorageSingleton.get_crteD().keys():
+        for crta1 in dataStorageSingleton.get_crteD()[symbol]:
+            if index==crta1.i:
+                crta1 = crta
+                #dataStorageSingleton.get_crteD()[symbol][i] = crta
+                break
+            i=i+1
+            
+            
+    for crta in dataStorageSingleton.get_crteD()[symbol]:
+        print(crta.plotlyLine());
+            
+    return None
+
 def getNextIndex(symbol):
     ret=0
     if symbol in dataStorageSingleton.get_crteD().keys():
@@ -551,7 +562,7 @@ def getPlotData(symbol):
     #x = df['timestamp'].index.astype("str").tolist()
     howmany = 2000
     
-    x = dataStorageSingleton.get_dfs()[symbol].tail(howmany).index.astype("str").tolist()
+    x = dataStorageSingleton.get_dfs()[symbol].tail(howmany).index.astype('str').tolist()
     open_ = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['open'].astype(float).tolist()
     high = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['high'].astype(float).tolist()
     low = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['low'].astype(float).tolist()
@@ -562,21 +573,24 @@ def getPlotData(symbol):
     signal = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['stoSignal'].astype(float).tolist()
 
     lines = [];
-    if symbol in dataStorageSingleton.get_crteD().keys():
-        for crta in dataStorageSingleton.get_crteD()[symbol]:
-            lines.append(crta.plotlyLine());
+    for crta in dataStorageSingleton.get_crteDforSymbol(symbol):
+        lines.append(crta.plotlyLine());
             
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
     
-    r_s = dataStorageSingleton.get_dfs()[symbol].iloc[-int(howmany/2)].name
-    r_e = dataStorageSingleton.get_dfs()[symbol].iloc[-1].name + timedelta(days=7)
+    dt1 = datetime.utcfromtimestamp(dataStorageSingleton.get_dfs()[symbol].iloc[-int(howmany/2)].timestamp/1000)
+    dt2 = datetime.utcfromtimestamp(dataStorageSingleton.get_dfs()[symbol].iloc[-1].timestamp/1000)
+
+    r_s = dt1.strftime("%Y-%m-%d %H:%M:%S");
+    r_e = dt2.strftime("%Y-%m-%d %H:%M:%S");
+    
 
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'ind1_sto': ind1,
             'ind1_signal': signal,
             'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
-            'range_start': r_s, 
+            'range_start': r_s,
             'range_end': r_e
             }
     
@@ -641,22 +655,6 @@ def scroll():
            }, 200
     
 
-def writeCrte(symbol):
-    crtePath = getDataPath(symbol) + os.sep + "crte.data"
-    try:
-        with open(crtePath,'w') as f:
-            strJson = jsonpickle.encode(dataStorageSingleton.get_crteD()[symbol], indent=2)
-            f.write(strJson)
-            app.logger.info("Wrote crte for symbol: " + symbol)
-             
-    except:
-        if os.path.isfile(crtePath):        
-            os.remove(crtePath)
-        app.logger.error(traceback.format_exc())
-        # or
-        app.logger.info(sys.exc_info()[2])      
-
-
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
     dataStorageSingleton.get_crteD()
@@ -667,20 +665,13 @@ def deleteLine():
             
     line_name = request.args.get('name')
     app.logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
-    for crta in dataStorageSingleton.get_crteD()[symbol]:
-        if crta.ime == line_name:
-            app.logger.info("Delete line with name: " + line_name + " on symbol: " + symbol)
-            app.logger.info("Length before: " + str(len(dataStorageSingleton.get_crteD()[symbol])))
-            dataStorageSingleton.get_crteD()[symbol].remove(crta);
-            app.logger.info("Length after:  " + str(len(dataStorageSingleton.get_crteD()[symbol])))
-            writeCrte(symbol)
+    dataStorageSingleton.remove_crteD(dataStorageSingleton[line_name])
 
     app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
     return getPlotData(symbol), 200
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
-    crteD=app.config['crteD']
     '''
     remote_ip = request.headers.get('X-Forwarded-For')
     if remote_ip != '89.233.122.140':
@@ -699,18 +690,16 @@ def addLine():
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     
     if 'type' in contentJson.keys() and contentJson['type']=='line':
-        crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'])
-        crteD[symbol].append(crta) 
-        writeCrte(symbol)
-        app.config['crteD'] = crteD
-        app.logger.info("Wrote new line for symbol: " + symbol + " " + crta.ime);
+        crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'], symbol)
+        dataStorageSingleton.update_crteD(crta)
+        dataStorageSingleton.writeCrte(crta.symbol)
         return getPlotData(symbol), 200
     elif list(contentJson.keys())[0].startswith("shapes"):
         app.logger.info("Correcting one line...")
         x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
         strI = x.group(1)
         intI=int(strI)
-        crta = getCrtaWithIndex(intI, symbol)
+        crta=dataStorageSingleton.get_crteDforSymbol(symbol)[intI]
         app.logger.info("Correcting one line " + crta.ime + " strI: " + str(intI))
         if not crta is None:
             if 'shapes['+strI+'].x0' in list(contentJson.keys()):
@@ -721,10 +710,8 @@ def addLine():
                 crta.changeX1(contentJson['shapes['+strI+'].x1'])
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
-            writeCrte(symbol)
-            strJson = jsonpickle.encode(crteD[symbol], indent=2)
-            app.logger.info(strJson)
-            app.config['crteD'] = crteD
+            dataStorageSingleton.update_crteD(crta)
+            dataStorageSingleton.writeCrte(crta.symbol)
             return getPlotData(symbol), 200
         else:
             app.logger.warn("Did not find crta: " + str(intI))
@@ -818,7 +805,7 @@ if __name__ != '__main__':
 
     
 if __name__ == '__main__':
-    dataStorageSingleton = DataStorageSingleton()
+    dataStorageSingleton = DataStorageSingleton(app)
     app.logger.setLevel(logging.INFO)  # Set log level to INFO
     #handler = logging.FileHandler('app.log')  # Log to a file
     #handlerConsole = logging.StreamHandler(sys.stdout)
@@ -828,16 +815,25 @@ if __name__ == '__main__':
     threadInitialCheck.start()
 
     jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
+    f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
     for symbol in symbols.union(stocks):
         dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
         if not symbol in dataStorageSingleton.get_dfs().keys():
             if os.path.isfile(dataPath):
-                dataStorageSingleton.get_dfs()[symbol] = pd.read_csv(dataPath)
-                dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].drop(['timestamp'], axis=1)
-                dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].rename(columns={"timestamp.1": "timestamp"})
-                f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-                dataStorageSingleton.get_dfs()[symbol].index = dataStorageSingleton.get_dfs()[symbol].timestamp.apply(f)
-
+                if 'BTCUSDT' in symbol:
+                    print(symbol)                
+                df = pd.read_csv(dataPath)
+                
+                #dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
+                #dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
+                #f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
+                #dfs[symbol].index = dfs[symbol].timestamp.apply(f)                
+                
+                df = df.drop(['timestamp'], axis=1)
+                df.rename(columns={"timestamp.1": "timestamp"}, inplace=True)
+                df.index = df.timestamp.apply(f)
+                
+                dataStorageSingleton.update_dfs(symbol, df)
 
     if session != None:
         result = session.get_tickers(category="linear").get('result')['list']
@@ -853,9 +849,11 @@ if __name__ == '__main__':
         if os.path.isfile(crtePath):
             with open(crtePath, 'r') as f:
                 json_str = f.read()
-                dataStorageSingleton.get_crteD()[symbol] = jsonpickle.decode(json_str)
-        else:
-            crte: List[Crta] = []
-            dataStorageSingleton.get_crteD()[symbol] = crte    
+                crteD = jsonpickle.decode(json_str)
+                for crta in crteD:
+                    if crta.symbol == '':
+                        crta.symbol = symbol
+                    dataStorageSingleton.update_crteD(crta) 
+
     
     app.run(host = '127.0.0.1', port = '8000', debug=False, threaded=False)
