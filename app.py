@@ -27,15 +27,11 @@ from threading import Thread, Lock
 
 import numpy as np
 import claudeTest
-import yfinance as yahooFinance
 import sys
 from decimal import Decimal, getcontext
 
 from matplotlib import image 
 from matplotlib import pyplot as plt 
-
-from pybit.unified_trading import HTTP
-from pybit.unified_trading import WebSocket
 
 import pandas as pd
 import datetime as dt
@@ -62,36 +58,22 @@ from claudeTest import getSuggestion
 
 from DataStorageSingleton import DataStorageSingleton
 
+
 dataStorageSingleton: DataStorageSingleton
 
 app = Flask(__name__,
             static_folder='./static',
             template_folder='./templates')
 
-
 claudRecomendation = dict()
 
 
-symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT'}
-stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
-
 supply = 2100000
 
-interval = 60
 locale.setlocale(locale.LC_ALL, 'sl_SI')
 
 
 fig = plt.figure()  # the figure will be reused later
-
-session = None
-if os.path.isfile("./authcreds.json"):
-    with open("./authcreds.json") as j:
-        creds = json.load(j)
-    
-    kljuc = creds['kljuc']
-    geslo = creds['geslo']
-
-    session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
 
 def utc_to_milliseconds(utc_string):
     # Parse the UTC string into a datetime object
@@ -102,56 +84,7 @@ def utc_to_milliseconds(utc_string):
     
     return timestamp_ms
 
-def format_data(response):
-    '''
-    Parameters
-    ----------
-    respone : dict
-        response from calling get_klines() method from pybit.
 
-    Returns
-    -------
-    dataframe of ohlc data with date as index
-
-    '''
-    
-    data = response.get('list', None)
-    if data == None:
-        # asume we have stock data
-        data = response.rename(columns={
-            'Datetime': 'timestamp',
-            'Open': 'open',
-            'High': 'high',
-            'Low': 'low',
-            'Close': 'close',
-            'Volume': 'volume'
-        })
-        data['timestamp'] = data.index.to_series()
-        data['timestamp'] = pd.to_datetime(data['timestamp']).astype('int64') // 10**6
-        #print(data)        
-        
-    else:
-        data = pd.DataFrame(data,
-                            columns =[
-                                'timestamp',
-                                'open',
-                                'high',
-                                'low',
-                                'close',
-                                'volume',
-                                'turnover'
-                                ],
-                            )
-        f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-        data.index = data.timestamp.apply(f)
-        #print(data)
-    
-    if data.empty:
-        return 
-    
-    #return data
-
-    return data[::-1].apply(pd.to_numeric)
 
 def getDataPath(symbol):
         path = pathlib.Path("." + os.sep + symbol).resolve()
@@ -160,95 +93,6 @@ def getDataPath(symbol):
             app.logger.info("Directory '% s' created" % path)
         return os.path.realpath(path);
     
-def get_last_timestamp(symbol):
-    if not symbol in dataStorageSingleton.get_dfs().keys():
-        return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        #return int(dt.datetime(2024, 1, 1).timestamp()* 1000)
-
-    return int(dataStorageSingleton.get_dfs().get(symbol).timestamp[-1:].values[0])
-    
-
-def pullNewData(symbol, start, interval):
-    added = False
-    
-    dataPath = getDataPath(symbol) + os.sep + symbol + '.data'
-    
-    while True:
-        app.logger.info(dt.datetime.now(ZoneInfo('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
-            ' Collecting data for: ' + symbol + ' from ' + \
-            dt.datetime.utcfromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
-
-        if symbol in stocks:
-            if start==1230764400000:
-                start = int(dt.datetime(2020, 1, 1).timestamp()* 1000)
-            stock = yahooFinance.Ticker(symbol)
-            startFrom = dt.datetime.fromtimestamp(start/1000).strftime("%Y-%m-%d")
-            endFromDt = dt.datetime.fromtimestamp(start/1000) + timedelta(days=350)
-            if endFromDt>dt.datetime.now():
-                endFromDt=dt.datetime.now()
-            endFrom = endFromDt.strftime("%Y-%m-%d")
-            response = stock.history(start=startFrom, end=endFrom, interval='1d')
-            latest = format_data(response)
-            
-            latest = latest.rename_axis("timestamp")
-            latest.index = latest.index.tz_convert(None)
-            latest = latest.sort_index(inplace=False)
-            
-            latest.index = latest.index.floor('s')
-            
-            start = latest.iloc[-1]['timestamp']
-        else:
-            response = session.get_kline(category='linear', 
-                                         symbol=symbol, 
-                                         start=start,
-                                         interval=interval).get('result')
-            latest = format_data(response)
-            start = latest.timestamp[-1:].values[0]
-        
-        app.logger.info("received " + str(latest.size) + " records")
-        
-        if not isinstance(latest, pd.DataFrame):
-            break
-        
-        time.sleep(0.2)
-        
-        if not symbol in dataStorageSingleton.get_dfs().keys():
-            dataStorageSingleton.get_dfs()[symbol] = latest
-        else:
-            dataStorageSingleton.get_dfs()[symbol] = pd.concat([dataStorageSingleton.get_dfs()[symbol], latest])
-            
-        added=True
-        app.logger.info("Appended data.")
-        if len(latest) == 1:
-            break
-    
-    if added:
-        
-        quotes_list = [
-            Quote(d,o,h,l,c,v) 
-            for d,o,h,l,c,v 
-            in zip(dataStorageSingleton.get_dfs()[symbol].index, dataStorageSingleton.get_dfs()[symbol]['open'], dataStorageSingleton.get_dfs()[symbol]['high'], dataStorageSingleton.get_dfs()[symbol]['low'], dataStorageSingleton.get_dfs()[symbol]['close'], dataStorageSingleton.get_dfs()[symbol]['volume'])
-        ]
-        
-        stoRsi = indicators.get_stoch_rsi(quotes_list, 14,14,3,1)        
-
-        stoch_rsi = []
-        signals = []
-        for stochRSIResult in stoRsi:
-            stoch_rsi.append(stochRSIResult.stoch_rsi)
-            signals.append(stochRSIResult.signal)
-
-
-        dataStorageSingleton.get_dfs()[symbol]['stoRsi'] = stoch_rsi
-        dataStorageSingleton.get_dfs()[symbol]['stoSignal'] = signals
-        
-        dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].fillna(0) 
-
-        dataStorageSingleton.get_dfs().get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
-
-        dataStorageSingleton.get_dfs().get(symbol).to_csv(dataPath)
-        
-        app.logger.info("Saved to csv.")
 
 # try load data
 #crte = Crta[]
@@ -304,25 +148,7 @@ def obv(data):
     return pd.Series(obv, index=data.index)
 
 
-def initialCheckOfData():
-    for symbol in symbols.union(stocks):
-        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        app.logger.info("Checking freshness of data: " + symbol + " ...")
-        if symbol in dataStorageSingleton.get_dfs().keys():
-            start = get_last_timestamp(symbol)
-            last_dt = datetime.fromtimestamp(start/1000)
-            duration = 0
-            if symbol in symbols:
-                duration = (datetime.now() - last_dt).total_seconds() / 3600
-                if duration > 1:
-                    app.logger.info(str(duration) + " hours old data for " + symbol) 
-                    pullNewData(symbol, start, interval)    
-            elif symbol in stocks:
-                duration = datetime.now() - last_dt
-                if duration.days > 1:
-                    app.logger.info(str(duration.days) + " days old data for " + symbol) 
-                    pullNewData(symbol, start, interval)    
-    app.logger.info("Checking done.")
+
 
     
 
@@ -363,7 +189,7 @@ def intersection(X1, X2):
 
 
 def calculateCrossSections(symbol):
-    app.logger.info("Calculating crossection...")
+    app.logger.info("Calculating crossection for symbol: " + symbol + " ...")
     krogci_x=[]
     krogci_y=[]
     krogci_radius=[]
@@ -480,12 +306,12 @@ ws.kline_stream(
 
 currentHour = dt.datetime.now().hour
 def repeatPullNewData():
-    global currentHour, symbols
+    global currentHour
     if dt.datetime.now().hour != currentHour:
         currentHour = dt.datetime.now().hour
         app.logger.info("beep - hour changed: " + str(currentHour))
         try:
-            for symbol in symbols.union(stocks):
+            for symbol in DataStorageSingleton._instance.symbols.union(DataStorageSingleton._instance.stocks):
                 start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
                 #start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
                 if symbol in dataStorageSingleton.get_dfs().keys():
@@ -773,7 +599,7 @@ def index():
     plot_data1 = getPlotData(symbol)
     
     tickers_data = " "
-    for symb in symbols.union(stocks):
+    for symb in DataStorageSingleton._instance.symbols.union(dataStorageSingleton._instance.stocks):
         tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
     
     claudRecomendation[symbol] = getSuggestion(dataStorageSingleton.get_dfs()[symbol])
@@ -797,7 +623,8 @@ def favicon():
 #threadInitialCheck.join()
 
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-    
+
+
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger('gunicorn.error')
     app.logger.handlers = gunicorn_logger.handlers
@@ -811,49 +638,6 @@ if __name__ == '__main__':
     #handlerConsole = logging.StreamHandler(sys.stdout)
     #app.logger.addHandler(handler)
     #app.logger.addHandler(handlerConsole)    
-    threadInitialCheck = Thread(target = initialCheckOfData, args = ())
-    threadInitialCheck.start()
 
-    jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-    f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-    for symbol in symbols.union(stocks):
-        dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
-        if not symbol in dataStorageSingleton.get_dfs().keys():
-            if os.path.isfile(dataPath):
-                if 'BTCUSDT' in symbol:
-                    print(symbol)                
-                df = pd.read_csv(dataPath)
-                
-                #dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
-                #dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
-                #f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-                #dfs[symbol].index = dfs[symbol].timestamp.apply(f)                
-                
-                df = df.drop(['timestamp'], axis=1)
-                df.rename(columns={"timestamp.1": "timestamp"}, inplace=True)
-                df.index = df.timestamp.apply(f)
-                
-                dataStorageSingleton.update_dfs(symbol, df)
 
-    if session != None:
-        result = session.get_tickers(category="linear").get('result')['list']
-        # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
-        tickers = [asset['symbol'] for asset in result]
-        app.logger.info(tickers)
-        tickers_data=""
-    
-    # load crte
-    for symbol in symbols.union(stocks):
-        crtePath = getDataPath(symbol) + os.sep + "crte.data"
-        app.logger.info(crtePath)
-        if os.path.isfile(crtePath):
-            with open(crtePath, 'r') as f:
-                json_str = f.read()
-                crteD = jsonpickle.decode(json_str)
-                for crta in crteD:
-                    if crta.symbol == '':
-                        crta.symbol = symbol
-                    dataStorageSingleton.update_crteD(crta) 
-
-    
     app.run(host = '127.0.0.1', port = '8000', debug=False, threaded=False)
