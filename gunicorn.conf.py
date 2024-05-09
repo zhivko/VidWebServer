@@ -13,7 +13,7 @@ access_log_format = '%({X-Forwarded-For}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)
 wsgi_app = 'app:app'
 
 # Worker processes
-workers = int(os.environ.get('GUNICORN_PROCESSES', '2'))  # Number of worker processes
+workers = int(os.environ.get('GUNICORN_PROCESSES', '1'))  # Number of worker processes
 worker_class = 'sync'  # The type of worker (sync, gevent, eventlet, etc.)
 
 # Reload on code changes
