@@ -595,7 +595,7 @@ def getNextIndex(symbol):
     return ret
 
 def getPlotData(symbol):
-    global crteD
+    global crteD, stocks
     #df['time'] = df['timestamp'].apply(lambda x: str(x)[14:4])
     #f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
     #df['time'] = df['timestamp'].apply(f)
@@ -626,12 +626,16 @@ def getPlotData(symbol):
     except:
         print("Error calculating exception.")
 
+    td = timedelta(days=7)
+    if symbol in stocks:
+        td = timedelta(days=7*3*7)
+
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'ind1_sto': ind1,
             'ind1_signal': signal,
             'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
-            'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + timedelta(days=7)
+            'range_start': dfs[symbol].iloc[-int(howmany/2)].name, 'range_end': dfs[symbol].iloc[-1].name + td
             }
     
 
