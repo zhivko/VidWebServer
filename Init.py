@@ -346,11 +346,13 @@ def calculateCrossSections(symbol, crteD):
             for crta1 in Crta.get_crteDforSymbol(symbol, crteD):
                 #print(crta1.ime)
                 if crta1.x0 != '' and crta1.x1 != '': 
-                    seg_2_x1 = crta1.convertTimeToValue(crta1.x0)
+                    #seg_2_x1 = crta1.convertTimeToValue(crta1.x0)
+                    seg_2_x1 = crta1.x0_timestamp/1000
                     #time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
                     #print(time1)
                     seg_2_y1 = crta1.y0
-                    seg_2_x2 = crta1.convertTimeToValue(crta1.x1)
+                    #seg_2_x2 = crta1.convertTimeToValue(crta1.x1)
+                    seg_2_x2 = crta1.x1_timestamp/1000
                     #time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
                     #print(time2)
                     seg_2_y2 = crta1.y1
@@ -365,7 +367,7 @@ def calculateCrossSections(symbol, crteD):
                         x = p_intersect.x
                         y = p_intersect.y
                         #if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
-                        time = datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
+                        time = datetime.utcfromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
                         krogci_x.append(time)
                         krogci_y.append(y)
                         krogci_radius.append(14)

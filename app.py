@@ -22,6 +22,10 @@ from shapely import set_precision
 from shapely import distance
 from threading import Thread, Lock
 
+import math
+
+import pytz
+
 import numpy as np
 import claudeTest
 import yfinance as yahooFinance
@@ -58,6 +62,7 @@ from MyFlask import MyFlask
 
 from Init import initialCheckOfData
 from threading import Thread
+from sympy.physics.units.definitions.unit_definitions import seconds
 
 
 app = MyFlask.app()
@@ -248,13 +253,12 @@ def all_exception_handler(error):
     MyFlask.app().logger.error(traceback.format_exc())
     
     
-    
 @app.route('/scroll', methods=['POST'])
 def scroll():
     crteD=read('crteD')
-    dt1 = datetime().now()
+    dt1 = datetime.now()
     dfs=read('dfs')
-    dt2 = datetime().now()
+    dt2 = datetime.now()
     
     MyFlask().app().logger.info("loading took: " + str((dt2-dt1).total_seconds()) + "s.")
     
@@ -284,9 +288,16 @@ def scroll():
         xaxis1_ = (datetime.strptime(xaxis1, "%Y-%m-%d %H:%M:%S"))
     
 
-
-    xaxis0_ = xaxis0_.strftime('%Y-%m-%d %H:00:00')
-    xaxis1_ = xaxis1_.strftime('%Y-%m-%d %H:00:00')
+    xaxis0_ = pd.to_datetime(xaxis0_)
+    xaxis0_ = xaxis0_.floor('1s')
+    xaxis1_ = pd.to_datetime(xaxis1_)
+    xaxis1_ = xaxis1_.floor('1s')
+    
+    #xaxis0_ = xaxis0_.strftime('%Y-%m-%d %H:00:00')
+    #xaxis1_ = xaxis1_.strftime('%Y-%m-%d %H:00:00')
+    
+    xaxis0_ = xaxis0_.replace(tzinfo=pytz.UTC)
+    xaxis1_ = xaxis1_.replace(tzinfo=pytz.UTC)
     
     df_range = dfs[symbol].loc[pd.Timestamp(xaxis0_):pd.Timestamp(xaxis1_)]
     
@@ -297,10 +308,10 @@ def scroll():
     close = df_range['close'].astype(float).tolist()
     volume = df_range['volume'].astype(float).tolist()
     lines = [];
-    for crta in crteD[symbol]:
+    for crta in Crta.get_crteDforSymbol(symbol, crteD):
         lines.append(crta.plotlyLine());
     
-    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD)
     
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
@@ -368,7 +379,7 @@ def addLine():
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
             crta.writeCrteD(crteD)
-            return getPlotData(symbol), 200
+            return getPlotData(symbol, dfs, crteD), 200
         else:
             MyFlask.app().logger.warn("Did not find crta: " + str(intI))
     else:
