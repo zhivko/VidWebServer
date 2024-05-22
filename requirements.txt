@@ -13,4 +13,5 @@ TA-Lib
 gunicorn
 yfinance
 stock-indicators
-uvicorn 
+flask-redis
+redis
