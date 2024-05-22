@@ -466,17 +466,12 @@ def favicon():
 #app.conf['DEBUG'] = True
 #threadInitialCheck.join()
 
-print("starting ...")
-MyFlask.app().config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-
-MyFlask.app().logger.info("__name__:" + __name__)
-
-if __name__ != '__main__':
-    gunicorn_logger = logging.getLogger('gunicorn.info')
-    MyFlask.app().logger.handlers = gunicorn_logger.handlers
-    MyFlask.app().logger.setLevel(gunicorn_logger.level)
 
     
 if __name__ == '__main__':
+    MyFlask.app().config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+    gunicorn_logger = logging.getLogger('gunicorn.info')
+    MyFlask.app().logger.handlers = gunicorn_logger.handlers
+    MyFlask.app().logger.setLevel(gunicorn_logger.level)
     MyFlask.app().logger.info("Starting MyFlask...")
     MyFlask.app().run(host = '127.0.0.1', port = '8000', debug=False)
