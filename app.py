@@ -149,10 +149,10 @@ def handle_message(messageDict):
 
 
 # interval
-# 1 3 5 15 30 60 120 240 360 720 minute
-# D day
-# W week
-# M month
+# 1 3 5 15 30 60 120 240 360 720â€ƒminute
+# Dâ€ƒday
+# Wâ€ƒweek
+# Mâ€ƒmonth
 ws.kline_stream(
     interval='1',  # 5 minute, https://bybit-exchange.github.io/docs/v5/enum#interval
     symbol= mysymbol, # "BTCUSDT",
