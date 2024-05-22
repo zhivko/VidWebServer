@@ -61,8 +61,8 @@ if os.path.isfile("./authcreds.json"):
     result = session.get_tickers(category="linear").get('result')['list']
     # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
     tickers = [asset['symbol'] for asset in result]
-    MyFlask().app().logger.info("Tickers:")
-    MyFlask().app().logger.info(tickers)
+    logging.info("Tickers:")
+    logging.info(tickers)
     tickers_data=""    
 
 symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT'}
@@ -323,7 +323,7 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
 def calculateCrossSections(symbol, crteD):
     dfs = read('dfs')
     
-    MyFlask().app().logger.info("Calculating crossection...")
+    logging.info("Calculating crossection...")
     krogci_x=[]
     krogci_y=[]
     krogci_radius=[]
@@ -417,7 +417,7 @@ def initialCheckOfData():
         dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
         if not symbol in dfs.keys():
             if os.path.isfile(dataPath):
-                MyFlask().app().logger.info('initialCheckOfData for: ' + symbol)                
+                logging.info('initialCheckOfData for: ' + symbol)                
                 df = pd.read_csv(dataPath, dtype={'timestamp': float}, thousands=',', decimal='.')
                 
                 f = lambda x: pd.Timestamp(x)
