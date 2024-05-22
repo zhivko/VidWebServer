@@ -62,6 +62,7 @@ app = MyFlask.app()
 print('bb')
 
 MyFlask.app().logger.info("starting ...")
+logging.info("starting LOGGING  ...")
 
 from Util import read, write
 from Init import calculateCrossSections, getDataPath, pullNewData, symbolsAndStocks, symbols, stocks
