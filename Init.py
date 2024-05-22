@@ -388,15 +388,9 @@ def repeatPullNewData():
         MyFlask.app().logger.info("beep - hour changed: " + str(currentHour))
         try:
             for symbol in symbols.union(stocks):
-                if symbol in dfs.keys():
-                    claudRecomendation[symbol] = getSuggestion(dfs[symbol])
-                    start = int(get_last_timestamp(symbol, dfs))
-                    dt = datetime.fromtimestamp(start, pytz.utc)
-                    
-                    MyFlask.app().logger.info("Datetime of last entry: " + dt.strftime('%Y-%m-%d %H:%M:%S'))
-                else:
-                    start = dt.datetime(2024, 1, 1).timestamp()
-                    claudRecomendation[symbol] = ""
+                start = int(get_last_timestamp(symbol, dfs))
+                dt = datetime.fromtimestamp(start, pytz.utc)
+                MyFlask.app().logger.info("Datetime of last entry for " + symbol + " : " + dt.strftime('%Y-%m-%d %H:%M:%S'))
     
                 pullNewData(symbol, start, dfs)
                 
