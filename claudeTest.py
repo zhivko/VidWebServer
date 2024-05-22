@@ -71,8 +71,8 @@ def getSuggestion(price_data):
     current_price = close_prices.iloc[0]
     #date_time = datetime.datetime.fromtimestamp(timestamps.iloc[0]/1000).strftime("%d.%m.%Y %H:%M:%S")
     
-    ljubljana_tz = pytz.timezone('Europe/Ljubljana')
-    local_time = datetime.datetime.fromtimestamp(timestamps.iloc[0]/1000, ljubljana_tz)
+    #ljubljana_tz = pytz.timezone('Europe/Ljubljana')
+    local_time = timestamps.iloc[0]
     
     explanation = f"RSI: {rsi:.2f}<br>"
     explanation += f"MACD: {macd:.2f}<br>"

@@ -5,9 +5,8 @@
 #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
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
+
 from flask import current_app, Flask, redirect, render_template, request, send_from_directory
-from stock_indicators import indicators
-from stock_indicators import Quote
 from flask import abort
 from threading import Thread
 from flask_debug import Debug
@@ -19,7 +18,6 @@ from Crta import Crta
 import re
 from intersect import line_intersection, crosses
 import logging
-import locale
 from shapely.geometry import LineString, Point
 from shapely import set_precision
 from shapely import distance
@@ -34,11 +32,8 @@ from decimal import Decimal, getcontext
 from matplotlib import image 
 from matplotlib import pyplot as plt 
 
-from pybit.unified_trading import HTTP
-from pybit.unified_trading import WebSocket
 
 import pandas as pd
-import datetime as dt
 from datetime import timedelta
 import time, threading
 import json
@@ -62,222 +57,17 @@ from claudeTest import getSuggestion
 
 from DataStorageSingleton import DataStorageSingleton
 
+from MyFlask import MyFlask
+
 dataStorageSingleton: DataStorageSingleton
 
-app = Flask(__name__,
-            static_folder='./static',
-            template_folder='./templates')
+
+app = MyFlask.app()
+from Util import read, write
+from Init import calculateCrossSections, getDataPath, pullNewData, symbolsAndStocks
 
 
 claudRecomendation = dict()
-
-
-symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT'}
-stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
-
-supply = 2100000
-
-interval = 60
-locale.setlocale(locale.LC_ALL, 'sl_SI')
-
-
-fig = plt.figure()  # the figure will be reused later
-
-session = None
-if os.path.isfile("./authcreds.json"):
-    with open("./authcreds.json") as j:
-        creds = json.load(j)
-    
-    kljuc = creds['kljuc']
-    geslo = creds['geslo']
-
-    session = HTTP(api_key=kljuc, api_secret=geslo, testnet=False)
-
-def utc_to_milliseconds(utc_string):
-    # Parse the UTC string into a datetime object
-    utc_datetime = datetime.strptime(utc_string, "%Y-%m-%dT%H:%M:%S.%fZ")
-    
-    # Calculate the timestamp in milliseconds
-    timestamp_ms = int(utc_datetime.timestamp() * 1000)
-    
-    return timestamp_ms
-
-def format_data(response):
-    '''
-    Parameters
-    ----------
-    respone : dict
-        response from calling get_klines() method from pybit.
-
-    Returns
-    -------
-    dataframe of ohlc data with date as index
-
-    '''
-    
-    data = response.get('list', None)
-    if data == None:
-        # asume we have stock data
-        data = response.rename(columns={
-            'Datetime': 'timestamp',
-            'Open': 'open',
-            'High': 'high',
-            'Low': 'low',
-            'Close': 'close',
-            'Volume': 'volume'
-        })
-        data['timestamp'] = data.index.to_series()
-        data['timestamp'] = pd.to_datetime(data['timestamp']).astype('int64') // 10**6
-        #print(data)        
-        
-    else:
-        data = pd.DataFrame(data,
-                            columns =[
-                                'timestamp',
-                                'open',
-                                'high',
-                                'low',
-                                'close',
-                                'volume',
-                                'turnover'
-                                ],
-                            )
-        f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-        data.index = data.timestamp.apply(f)
-        #print(data)
-    
-    if data.empty:
-        return 
-    
-    #return data
-
-    return data[::-1].apply(pd.to_numeric)
-
-def getDataPath(symbol):
-        path = pathlib.Path("." + os.sep + symbol).resolve()
-        if not (os.path.isdir(path)):
-            os.mkdir(path, mode = 0o777)
-            app.logger.info("Directory '% s' created" % path)
-        return os.path.realpath(path);
-    
-def get_last_timestamp(symbol):
-    if not symbol in dataStorageSingleton.get_dfs().keys():
-        return int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        #return int(dt.datetime(2024, 1, 1).timestamp()* 1000)
-
-    return int(dataStorageSingleton.get_dfs().get(symbol).timestamp[-1:].values[0])
-    
-
-def pullNewData(symbol, start, interval):
-    added = False
-    
-    dataPath = getDataPath(symbol) + os.sep + symbol + '.data'
-    
-    while True:
-        app.logger.info(dt.datetime.now(ZoneInfo('Europe/Ljubljana')).strftime("%d.%m.%Y %H:%M:%S") + \
-            ' Collecting data for: ' + symbol + ' from ' + \
-            dt.datetime.utcfromtimestamp(start/1000).strftime("%d.%m.%Y %H:%M:%S"))
-
-        if symbol in stocks:
-            if start==1230764400000:
-                start = int(dt.datetime(2020, 1, 1).timestamp()* 1000)
-            stock = yahooFinance.Ticker(symbol)
-            startFrom = dt.datetime.fromtimestamp(start/1000).strftime("%Y-%m-%d")
-            endFromDt = dt.datetime.fromtimestamp(start/1000) + timedelta(days=350)
-            if endFromDt>dt.datetime.now():
-                endFromDt=dt.datetime.now()
-            endFrom = endFromDt.strftime("%Y-%m-%d")
-            response = stock.history(start=startFrom, end=endFrom, interval='1d')
-            latest = format_data(response)
-            
-            latest = latest.rename_axis("timestamp")
-            latest.index = latest.index.tz_convert(None)
-            latest = latest.sort_index(inplace=False)
-            
-            latest.index = latest.index.floor('s')
-            
-            start = latest.iloc[-1]['timestamp']
-        else:
-            response = session.get_kline(category='linear', 
-                                         symbol=symbol, 
-                                         start=start,
-                                         interval=interval).get('result')
-            latest = format_data(response)
-            start = latest.timestamp[-1:].values[0]
-        
-        app.logger.info("received " + str(latest.size) + " records")
-        
-        if not isinstance(latest, pd.DataFrame):
-            break
-        
-        time.sleep(0.2)
-        
-        if not symbol in dataStorageSingleton.get_dfs().keys():
-            dataStorageSingleton.get_dfs()[symbol] = latest
-        else:
-            dataStorageSingleton.get_dfs()[symbol] = pd.concat([dataStorageSingleton.get_dfs()[symbol], latest])
-            
-        added=True
-        app.logger.info("Appended data.")
-        if len(latest) == 1:
-            break
-    
-    if added:
-        
-        quotes_list = [
-            Quote(d,o,h,l,c,v) 
-            for d,o,h,l,c,v 
-            in zip(dataStorageSingleton.get_dfs()[symbol].index, dataStorageSingleton.get_dfs()[symbol]['open'], dataStorageSingleton.get_dfs()[symbol]['high'], dataStorageSingleton.get_dfs()[symbol]['low'], dataStorageSingleton.get_dfs()[symbol]['close'], dataStorageSingleton.get_dfs()[symbol]['volume'])
-        ]
-        
-        stoRsi = indicators.get_stoch_rsi(quotes_list, 14,14,3,1)        
-
-        stoch_rsi = []
-        signals = []
-        for stochRSIResult in stoRsi:
-            stoch_rsi.append(stochRSIResult.stoch_rsi)
-            signals.append(stochRSIResult.signal)
-
-
-        dataStorageSingleton.get_dfs()[symbol]['stoRsi'] = stoch_rsi
-        dataStorageSingleton.get_dfs()[symbol]['stoSignal'] = signals
-        
-        dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].fillna(0) 
-
-        dataStorageSingleton.get_dfs().get(symbol).drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
-
-        dataStorageSingleton.get_dfs().get(symbol).to_csv(dataPath)
-        
-        app.logger.info("Saved to csv.")
-
-# try load data
-#crte = Crta[]
-
-def gmail(message, symbol):
-    global creds
-    gmailEmail = creds['gmailEmail']
-    gmailPwd = creds['gmailPwd']
-
-
-    try:
-        app.logger.info('sending email...')
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.ehlo()
-        server.starttls()
-        server.login(gmailEmail,gmailPwd)
-        #server.set_debuglevel(1)
-        
-        message["Subject"] = symbol
-        message["From"] = gmailEmail
-        
-        message["To"] = creds['emailTo'] #', '.join(["vid.zivkovic@gmail.com", "klemen.zivkovic@gmail.com"])
-        
-        server.send_message(message)
-        server.close()
-        app.logger.info('sending email...Done.')
-    except:
-        app.logger.error("failed to send mail")
-        app.logger.error(traceback.format_exc())
 
 '''
 message = MIMEMultipart("alternative")
@@ -304,119 +94,11 @@ def obv(data):
     return pd.Series(obv, index=data.index)
 
 
-def initialCheckOfData():
-    for symbol in symbols.union(stocks):
-        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        app.logger.info("Checking freshness of data: " + symbol + " ...")
-        if symbol in dataStorageSingleton.get_dfs().keys():
-            start = get_last_timestamp(symbol)
-            last_dt = datetime.fromtimestamp(start/1000)
-            duration = 0
-            if symbol in symbols:
-                duration = (datetime.now() - last_dt).total_seconds() / 3600
-                if duration > 1:
-                    app.logger.info(str(duration) + " hours old data for " + symbol) 
-                    pullNewData(symbol, start, interval)    
-            elif symbol in stocks:
-                duration = datetime.now() - last_dt
-                if duration.days > 1:
-                    app.logger.info(str(duration.days) + " days old data for " + symbol) 
-                    pullNewData(symbol, start, interval)    
-    app.logger.info("Checking done.")
 
     
 
-def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
-    i=0;
-    text_data='';
-    for x in krogci_x:
-        text_data = text_data + \
-                'time:  ' + x + '\n' + \
-                'price: ' + '{:0,.2f}'.format(krogci_y[i]) + ' $USD/BTC\n\n'
-        i=i+1;
-                      
-            
-    if text_data!='':
-        text = 'https://crypto.zhivko.eu/index.html?pair='+symbol+'\n';
-        text = text + 'Crossing happened for ' + symbol + '\n'
-        text = text + text_data
-        message = MIMEMultipart("alternative")
-        part1 = MIMEText(text, "plain")
-        message.attach(part1)
-        gmail(message, symbol)
 
 
-
-def intersection(X1, X2):
-    x = np.union1d(X1[0], X2[0])
-    y1 = np.interp(x, X1[0], X1[1])
-    y2 = np.interp(x, X2[0], X2[1])
-    dy = y1 - y2
-
-    ind = (dy[:-1] * dy[1:] < 0).nonzero()[0]
-    x1, x2 = x[ind], x[ind+1]
-    dy1, dy2 = dy[ind], dy[ind+1]
-    y11, y12 = y1[ind], y1[ind+1]
-    x_int = x1 - (x2 - x1) * dy1 / (dy2 - dy1)
-    y_int = y11 + (y12 - y11) * (x_int - x1) / (x2 - x1)
-    return x_int, y_int
-
-
-def calculateCrossSections(symbol):
-    app.logger.info("Calculating crossection...")
-    krogci_x=[]
-    krogci_y=[]
-    krogci_radius=[]
-    precision = 1e-15
-    for index, row in dataStorageSingleton.get_dfs()[symbol].tail(50).iterrows():
-        loc = dataStorageSingleton.get_dfs()[symbol].index.get_loc(row.name)
-        try:
-            
-            seg_1_x1 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].timestamp
-            seg_1_y1 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].low
-            seg_1_x2 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].timestamp
-            seg_1_y2 = dataStorageSingleton.get_dfs()[symbol].iloc[loc].high
-
-            point_1 = Point([seg_1_x1, seg_1_y1]) # x, y
-            point_2 = Point([seg_1_x2, seg_1_y2]) # x, y
-            line1 = LineString((point_1, point_2))
-            
-            set_precision(line1, precision)
-            
-            for crta in dataStorageSingleton.get_crteDforSymbol(symbol):
-                #print(crta.ime)
-                if crta.x0 != '' and crta.x1 != '': 
-                    seg_2_x1 = crta.convertTimeToValue(crta.x0)
-                    #time1 = dt.datetime.utcfromtimestamp(seg_2_x1/1000).strftime("%Y-%m-%d %H:%M:%S")
-                    #print(time1)
-                    seg_2_y1 = crta.y0
-                    seg_2_x2 = crta.convertTimeToValue(crta.x1)
-                    #time2 = dt.datetime.utcfromtimestamp(seg_2_x2/1000).strftime("%Y-%m-%d %H:%M:%S")
-                    #print(time2)
-                    seg_2_y2 = crta.y1
-    
-                    point_3 = Point([seg_2_x1, seg_2_y1]) # x, y
-                    point_4 = Point([seg_2_x2, seg_2_y2]) # x, y
-                    line2 = LineString((point_3, point_4))
-                    set_precision(line2, precision)
-    
-                    if line1.intersects(line2):
-                        p_intersect = line1.intersection(line2)
-                        x = p_intersect.x
-                        y = p_intersect.y
-                        #if(y<=seg_1_y2 and y>=seg_1_y1 and x>=seg_2_x1 and x<=seg_2_x2):
-                        time = dt.datetime.utcfromtimestamp(x/1000).strftime("%Y-%m-%d %H:%M:%S")
-                        krogci_x.append(time)
-                        krogci_y.append(y)
-                        krogci_radius.append(14)
-                        #continue
-        except Exception as e:
-            app.logger.error("An exception occurred in calculateCrossSections:" + e.args)
-            app.logger.error(traceback.format_exc())
-            
-    
-    app.logger.info("Calculating crossection...Done.")
-    return krogci_x, krogci_y, krogci_radius
 
 
 
@@ -478,108 +160,70 @@ ws.kline_stream(
 )
 '''
 
-currentHour = dt.datetime.now().hour
-def repeatPullNewData():
-    global currentHour, symbols
-    if dt.datetime.now().hour != currentHour:
-        currentHour = dt.datetime.now().hour
-        app.logger.info("beep - hour changed: " + str(currentHour))
-        try:
-            for symbol in symbols.union(stocks):
-                start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-                #start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
-                if symbol in dataStorageSingleton.get_dfs().keys():
-                    claudRecomendation[symbol] = getSuggestion(dataStorageSingleton.get_dfs()[symbol])
-                    start = get_last_timestamp(symbol)
-                else:
-                    claudRecomendation[symbol] = ""
-    
-                pullNewData(symbol, start, interval)
-                
-                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
-                sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
-        except:
-            app.logger.error('Something went wrong retrieving data')
-            app.logger.error(traceback.format_exc())
-
-            
-    
-    threading.Timer(20, repeatPullNewData).start()
-    
-    
-# function to create threads
-def threaded_function():
-    repeatPullNewData()
- 
- 
-thread = Thread(target = threaded_function, args = ())
-thread.start()
-thread.join()
-
-    
-
-
-def getCrtaWithIndex(index, symbol):
+def getCrtaWithIndex(index, symbol, crteD):
     i=0
-    if symbol in dataStorageSingleton.get_crteD().keys():
-        for crta in dataStorageSingleton.get_crteD()[symbol]:
+    for crta in Crta.get_crteDforSymbol(symbol, crteD):
+        if symbol in crta.symbol:
             if i==index:
                 return crta
             i=i+1
     return None
 
 def writeCrtaWithIndex(index, symbol, crta: Crta):
+    crteD=read('crteD')
     i=0
-    if symbol in dataStorageSingleton.get_crteD().keys():
-        for crta1 in dataStorageSingleton.get_crteD()[symbol]:
+    if symbol in crteD.keys():
+        for crta1 in crteD[symbol]:
             if index==crta1.i:
                 crta1 = crta
-                #dataStorageSingleton.get_crteD()[symbol][i] = crta
+                #crteD[symbol][i] = crta
                 break
             i=i+1
             
             
-    for crta in dataStorageSingleton.get_crteD()[symbol]:
+    for crta in crteD[symbol]:
         print(crta.plotlyLine());
             
     return None
 
-def getNextIndex(symbol):
+def getNextIndex(symbol, crteD):
     ret=0
-    if symbol in dataStorageSingleton.get_crteD().keys():
-        if len(dataStorageSingleton.get_crteD()[symbol])>0:
-            for crta in dataStorageSingleton.get_crteD()[symbol]:
+    if symbol in crteD.keys():
+        if len(crteD[symbol])>0:
+            for crta in crteD[symbol]:
                 if ret < crta.i:
                     ret = crta.i
             ret = ret + 1
     return ret
 
-def getPlotData(symbol):
+def getPlotData(symbol, dfs, crteD):
     #df['time'] = df['timestamp'].apply(lambda x: str(x)[14:4])
     #f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
     #df['time'] = df['timestamp'].apply(f)
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
-    howmany = 2000
+    howmany = 500
     
-    x = dataStorageSingleton.get_dfs()[symbol].tail(howmany).index.astype('str').tolist()
-    open_ = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['open'].astype(float).tolist()
-    high = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['high'].astype(float).tolist()
-    low = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['low'].astype(float).tolist()
-    close = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['close'].astype(float).tolist()
-    volume = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['volume'].astype(float).tolist()
     
-    ind1 = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['stoRsi'].astype(float).tolist()
-    signal = dataStorageSingleton.get_dfs()[symbol].tail(howmany)['stoSignal'].astype(float).tolist()
+    
+    x = dfs[symbol].tail(howmany).index.astype('str').tolist()
+    open_ = dfs[symbol].tail(howmany)['open'].astype(float).tolist()
+    high = dfs[symbol].tail(howmany)['high'].astype(float).tolist()
+    low = dfs[symbol].tail(howmany)['low'].astype(float).tolist()
+    close = dfs[symbol].tail(howmany)['close'].astype(float).tolist()
+    volume = dfs[symbol].tail(howmany)['volume'].astype(float).tolist()
+    
+    ind1 = dfs[symbol].tail(howmany)['stoRsi'].astype(float).tolist()
+    signal = dfs[symbol].tail(howmany)['stoSignal'].astype(float).tolist()
 
     lines = [];
-    for crta in dataStorageSingleton.get_crteDforSymbol(symbol):
+    for crta in Crta.get_crteDforSymbol(symbol, crteD):
         lines.append(crta.plotlyLine());
             
-    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+    krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD)
     
-    dt1 = datetime.utcfromtimestamp(dataStorageSingleton.get_dfs()[symbol].iloc[-int(howmany/2)].timestamp/1000)
-    dt2 = datetime.utcfromtimestamp(dataStorageSingleton.get_dfs()[symbol].iloc[-1].timestamp/1000)
+    dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-int(howmany/2)].timestamp)
+    dt2 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp)
 
     r_s = dt1.strftime("%Y-%m-%d %H:%M:%S");
     r_e = dt2.strftime("%Y-%m-%d %H:%M:%S");
@@ -597,22 +241,27 @@ def getPlotData(symbol):
 
 @app.errorhandler(Exception)
 def all_exception_handler(error):
-    app.logger.error(str(error))
-    app.logger.error(traceback.format_exc())
+    MyFlask.app().logger.error(str(error))
+    MyFlask.app().logger.error(traceback.format_exc())
     
     
     
 @app.route('/scroll', methods=['POST'])
 def scroll():
-    crteD=dataStorageSingleton.get_crteD()
-    dfs=dataStorageSingleton.get_dfs()
+    crteD=read('crteD')
+    dt1 = datetime().now()
+    dfs=read('dfs')
+    dt2 = datetime().now()
+    
+    MyFlask().app().logger.info("loading took: " + str((dt2-dt1).total_seconds()) + "s.")
+    
     
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
         
     contentJson = request.json
-    app.logger.info(contentJson)
+    MyFlask.app().logger.info(contentJson)
 
     xaxis0 = contentJson['xaxis.range[0]'];
     xaxis1 = contentJson['xaxis.range[1]'];
@@ -636,7 +285,7 @@ def scroll():
     xaxis0_ = xaxis0_.strftime('%Y-%m-%d %H:00:00')
     xaxis1_ = xaxis1_.strftime('%Y-%m-%d %H:00:00')
     
-    df_range = dataStorageSingleton.get_dfs()[symbol].loc[pd.Timestamp(xaxis0_):pd.Timestamp(xaxis1_)]
+    df_range = dfs[symbol].loc[pd.Timestamp(xaxis0_):pd.Timestamp(xaxis1_)]
     
     x = df_range.index.astype("str").tolist()
     open_ = df_range['open'].astype(float).tolist()
@@ -657,18 +306,20 @@ def scroll():
 
 @app.route('/deleteLine', methods=['POST'])
 def deleteLine():
-    dataStorageSingleton.get_crteD()
+    crteD=read('crteD')
+    dfs=read('dfs')
         
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
             
     line_name = request.args.get('name')
-    app.logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
-    dataStorageSingleton.remove_crteD(dataStorageSingleton[line_name])
+    MyFlask.app().logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
+    
+    dataStorageSingleton.removeFromcrteD(dataStorageSingleton[line_name])
 
-    app.logger.info("Delete line for symbol: "+symbol+" ...Done.")
-    return getPlotData(symbol), 200
+    MyFlask.app().logger.info("Delete line for symbol: "+symbol+" ...Done.")
+    return getPlotData(symbol, dfs, crteD), 200
 
 @app.route('/addLine', methods=['POST'])
 def addLine():
@@ -677,30 +328,31 @@ def addLine():
     if remote_ip != '89.233.122.140':
         return "forbidden", 403
     '''
-        
+    crteD = read('crteD')
+    dfs = read('dfs')
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
     
-    app.logger.info("/addLine for symbol: " + symbol)
+    MyFlask.app().logger.info("/addLine for symbol: " + symbol)
             
     contentJson = request.json
-    app.logger.info(contentJson)
+    MyFlask.app().logger.info(contentJson)
 
     crtePath = getDataPath(symbol) + os.sep + "crte.data"
     
     if 'type' in contentJson.keys() and contentJson['type']=='line':
-        crta=Crta(getNextIndex(symbol), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'], symbol)
-        dataStorageSingleton.update_crteD(crta)
-        dataStorageSingleton.writeCrte(crta.symbol)
-        return getPlotData(symbol), 200
+        crta=Crta(getNextIndex(symbol, crteD), contentJson['x0'], contentJson['y0'], contentJson['x1'], contentJson['y1'], symbol)
+        crta.writeCrteD(crteD)
+        return getPlotData(symbol, dfs, crteD), 200
     elif list(contentJson.keys())[0].startswith("shapes"):
-        app.logger.info("Correcting one line...")
+        MyFlask.app().logger.info("Correcting one line...")
         x = re.search(r"shapes\[(.*)\].*", list(contentJson.keys())[0])
         strI = x.group(1)
         intI=int(strI)
-        crta=dataStorageSingleton.get_crteDforSymbol(symbol)[intI]
-        app.logger.info("Correcting one line " + crta.ime + " strI: " + str(intI))
+        crta = getCrtaWithIndex(intI, symbol, crteD)
+
+        MyFlask.app().logger.info("Correcting one line " + crta.ime + " strI: " + str(intI))
         if not crta is None:
             if 'shapes['+strI+'].x0' in list(contentJson.keys()):
                 crta.changeX0(contentJson['shapes['+strI+'].x0'])
@@ -710,34 +362,34 @@ def addLine():
                 crta.changeX1(contentJson['shapes['+strI+'].x1'])
             if 'shapes['+strI+'].y1' in list(contentJson.keys()):
                 crta.y1 = contentJson['shapes['+strI+'].y1']
-            dataStorageSingleton.update_crteD(crta)
-            dataStorageSingleton.writeCrte(crta.symbol)
+            crta.writeCrteD(crteD)
             return getPlotData(symbol), 200
         else:
-            app.logger.warn("Did not find crta: " + str(intI))
+            MyFlask.app().logger.warn("Did not find crta: " + str(intI))
     else:
-        app.logger.warn("Unknown json: " + contentJson)
+        MyFlask.app().logger.warn("Unknown json: " + contentJson)
 
-    app.logger.info("/addLine for symbol: " + symbol + "... Done.")
+    MyFlask.app().logger.info("/addLine for symbol: " + symbol + "... Done.")
     return "ok", 200
 
 '''
 @app.route('/favicon.ico')
 def favicon():
-    print(os.path.join(app.root_path, 'static'))
-    return send_from_directory(app.static_folder, 'favicon.ico') 
-'''    
-def threaded_function2(symbol, start, interval):
-    pullNewData(symbol, start, interval)
+    print(os.path.join(MyFlask.app().root_path, 'static'))
+    return send_from_directory(MyFlask.app().static_folder, 'favicon.ico') 
  
-thread2 = Thread()
-app.config['thread2'] = thread2
+'''    
 
 '''
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('./404.html'), 404
 '''
+
+def threaded_function2(symbol, start):
+    pullNewData(symbol, start)
+
+
 
 @app.route('/',methods = ['GET'])
 def root():
@@ -746,37 +398,50 @@ def root():
 
 @app.route('/index.html')
 def index():
-    global thread2
+    dt1 = datetime.now()
+    dfs=read('dfs')
+    crteD=read('crteD')
+    dt2 = datetime.now()
+    
+    MyFlask().app().logger.info("loading took: " + str((dt2-dt1).total_seconds()) + "s.")
+
+
+    thread2 = read('thread2')
+    
+    
+    
     symbol = request.args.get('pair')
     if(symbol == None or symbol==""):
         symbol = "BTCUSDT"
     
     mydata = getDataPath(symbol) + os.sep + symbol + ".data"
     if not os.path.isfile(mydata):
-        start = int(dt.datetime(2009, 1, 1).timestamp()* 1000)
-        if thread2.is_alive():
+        start = int(datetime(2009, 1, 1).timestamp()* 1000)
+        if thread2!=None and thread2.is_alive():
             return "Thread for collecting data is running... Try later..."
         else:
-            thread2 = Thread(target = threaded_function2, args = (symbol, start, interval))
+            thread2 = Thread(target = threaded_function2, args = (symbol, start))
             thread2.start()
+            write('thread2', thread2)
             return "Thread for collecting data has been started... Try later..."
-        
+    '''   
     else:
-        if not symbol in dataStorageSingleton.get_dfs().keys():
-            dataStorageSingleton.get_dfs()[symbol] = pd.read_csv(mydata)
-            dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].drop(['timestamp'], axis=1)
-            dataStorageSingleton.get_dfs()[symbol] = dataStorageSingleton.get_dfs()[symbol].rename(columns={"timestamp.1": "timestamp"})
-            f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-            dataStorageSingleton.get_dfs()[symbol].index = dataStorageSingleton.get_dfs()[symbol].timestamp.apply(f)
+        if not symbol in dfs.keys():
+            dfs[symbol] = pd.read_csv(mydata)
+            dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
+            dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
+            f = lambda x: datetime.utcfromtimestamp(int(x)/1000)
+            dfs[symbol].index = dfs[symbol].timestamp.apply(f)
+    '''
     
-    app.logger.info(dataStorageSingleton.get_dfs()[symbol])
-    plot_data1 = getPlotData(symbol)
+    #MyFlask.app().logger.info(dfs[symbol])
+    plot_data1 = getPlotData(symbol, dfs, crteD)
     
     tickers_data = " "
-    for symb in symbols.union(stocks):
+    for symb in symbolsAndStocks:
         tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
     
-    claudRecomendation[symbol] = getSuggestion(dataStorageSingleton.get_dfs()[symbol])
+    claudRecomendation[symbol] = getSuggestion(dfs[symbol])
     if claudRecomendation[symbol] != None and len(claudRecomendation[symbol])>0:
         return render_template('./index.html', plot_data=plot_data1, 
                                webpage_data={'tickers_data': tickers_data, 'selectedPair': symbol, 'suggestion': claudRecomendation[symbol][0], 'explanation': claudRecomendation[symbol][1]
@@ -788,7 +453,7 @@ def index():
 
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
+    return send_from_directory(os.path.join(MyFlask.app().root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 #Debug(app)
@@ -796,64 +461,13 @@ def favicon():
 #app.conf['DEBUG'] = True
 #threadInitialCheck.join()
 
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+MyFlask.app().config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
     
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
+    MyFlask.app().logger.handlers = gunicorn_logger.handlers
+    MyFlask.app().logger.setLevel(gunicorn_logger.level)
 
     
 if __name__ == '__main__':
-    dataStorageSingleton = DataStorageSingleton(app)
-    app.logger.setLevel(logging.INFO)  # Set log level to INFO
-    #handler = logging.FileHandler('app.log')  # Log to a file
-    #handlerConsole = logging.StreamHandler(sys.stdout)
-    #app.logger.addHandler(handler)
-    #app.logger.addHandler(handlerConsole)    
-    threadInitialCheck = Thread(target = initialCheckOfData, args = ())
-    threadInitialCheck.start()
-
-    jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-    f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-    for symbol in symbols.union(stocks):
-        dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
-        if not symbol in dataStorageSingleton.get_dfs().keys():
-            if os.path.isfile(dataPath):
-                if 'BTCUSDT' in symbol:
-                    print(symbol)                
-                df = pd.read_csv(dataPath)
-                
-                #dfs[symbol] = dfs[symbol].drop(['timestamp'], axis=1)
-                #dfs[symbol] = dfs[symbol].rename(columns={"timestamp.1": "timestamp"})
-                #f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-                #dfs[symbol].index = dfs[symbol].timestamp.apply(f)                
-                
-                df = df.drop(['timestamp'], axis=1)
-                df.rename(columns={"timestamp.1": "timestamp"}, inplace=True)
-                df.index = df.timestamp.apply(f)
-                
-                dataStorageSingleton.update_dfs(symbol, df)
-
-    if session != None:
-        result = session.get_tickers(category="linear").get('result')['list']
-        # if (asset['symbol'].endswith('USDT') or asset['symbol'].endswith('BTC'))]
-        tickers = [asset['symbol'] for asset in result]
-        app.logger.info(tickers)
-        tickers_data=""
-    
-    # load crte
-    for symbol in symbols.union(stocks):
-        crtePath = getDataPath(symbol) + os.sep + "crte.data"
-        app.logger.info(crtePath)
-        if os.path.isfile(crtePath):
-            with open(crtePath, 'r') as f:
-                json_str = f.read()
-                crteD = jsonpickle.decode(json_str)
-                for crta in crteD:
-                    if crta.symbol == '':
-                        crta.symbol = symbol
-                    dataStorageSingleton.update_crteD(crta) 
-
-    
-    app.run(host = '127.0.0.1', port = '8000', debug=False, threaded=False)
+    MyFlask.app().run(host = '127.0.0.1', port = '8000', debug=False)
