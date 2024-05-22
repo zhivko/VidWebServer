@@ -55,12 +55,7 @@ from claudeTest import getSuggestion
 #from pandas.conftest import datapath
 #global lineCounter, dfs, interval, crteD
 
-from DataStorageSingleton import DataStorageSingleton
-
 from MyFlask import MyFlask
-
-dataStorageSingleton: DataStorageSingleton
-
 
 app = MyFlask.app()
 from Util import read, write
@@ -308,7 +303,8 @@ def scroll():
 def deleteLine():
     crteD=read('crteD')
     dfs=read('dfs')
-        
+    crta: Crta
+    
     symbol = request.args.get('pair')
     if symbol==None:
         symbol = "BTCUSDT"
@@ -316,7 +312,8 @@ def deleteLine():
     line_name = request.args.get('name')
     MyFlask.app().logger.info("Delete line for symbol: " + symbol + " with name: " + line_name)
     
-    dataStorageSingleton.removeFromcrteD(dataStorageSingleton[line_name])
+    crta = crteD[line_name]
+    crta.removeFromcrteD()
 
     MyFlask.app().logger.info("Delete line for symbol: "+symbol+" ...Done.")
     return getPlotData(symbol, dfs, crteD), 200
