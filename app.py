@@ -460,6 +460,7 @@ def favicon():
 #app.conf['DEBUG'] = True
 #threadInitialCheck.join()
 
+print("starting ...")
 MyFlask.app().config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 MyFlask.app().logger.info("__name__:" + __name__)
