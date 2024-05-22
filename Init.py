@@ -417,7 +417,7 @@ def initialCheckOfData():
         dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
         if not symbol in dfs.keys():
             if os.path.isfile(dataPath):
-                logging.info('initialCheckOfData for: ' + symbol)                
+                MyFlask.app().logger.info("initialCheckOfData for: " + symbol)                
                 df = pd.read_csv(dataPath, dtype={'timestamp': float}, thousands=',', decimal='.')
                 
                 f = lambda x: pd.Timestamp(x)
