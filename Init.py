@@ -40,8 +40,6 @@ from Crta import Crta
 from Util import read, write, delete
 
 from MyFlask import MyFlask
-from pickle import NONE
-from alembic.command import current
 
 claudRecomendation = dict()
 jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
