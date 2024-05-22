@@ -57,7 +57,9 @@ from claudeTest import getSuggestion
 
 from MyFlask import MyFlask
 
+print('aa')
 app = MyFlask.app()
+print('bb')
 
 MyFlask.app().logger.info("starting ...")
 
