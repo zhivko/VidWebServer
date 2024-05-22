@@ -57,7 +57,10 @@ from claudeTest import getSuggestion
 
 from MyFlask import MyFlask
 
-app = MyFlask.app(__name__)
+app = MyFlask.app()
+
+MyFlask.app().logger.info("starting ...")
+
 from Util import read, write
 from Init import calculateCrossSections, getDataPath, pullNewData, symbolsAndStocks, symbols, stocks
 
