@@ -410,28 +410,26 @@ def threaded_function():
     repeatPullNewData()
 
 def initialCheckOfData():
-    dfs = read('dfs')
     
-    if dfs == None:
-        dfs = {}
+    dfs = {}
 #        f = lambda x: dt.datetime.utcfromtimestamp(int(x)/1000)
-        for symbol in symbols.union(stocks):
-            dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
-            if not symbol in dfs.keys():
-                if os.path.isfile(dataPath):
-                    MyFlask().app().logger.info('initialCheckOfData for: ' + symbol)                
-                    df = pd.read_csv(dataPath, dtype={'timestamp': float}, thousands=',', decimal='.')
-                    
-                    f = lambda x: pd.Timestamp(x)
-                    df.index = pd.to_datetime(df['datetime'], utc=True, format='ISO8601')
-                    df.index.names = ['datetime'] 
-                    df.drop(['datetime'], axis=1, inplace=True)
-                    
-                    #df = df.rename(columns={"timestamp.1": "timestamp"})
-                    #
-                    
-                    dfs[symbol] = df
-        write('dfs', dfs)
+    for symbol in symbols.union(stocks):
+        dataPath = getDataPath(symbol) + os.sep + symbol + '.data'            
+        if not symbol in dfs.keys():
+            if os.path.isfile(dataPath):
+                MyFlask().app().logger.info('initialCheckOfData for: ' + symbol)                
+                df = pd.read_csv(dataPath, dtype={'timestamp': float}, thousands=',', decimal='.')
+                
+                f = lambda x: pd.Timestamp(x)
+                df.index = pd.to_datetime(df['datetime'], utc=True, format='ISO8601')
+                df.index.names = ['datetime'] 
+                df.drop(['datetime'], axis=1, inplace=True)
+                
+                #df = df.rename(columns={"timestamp.1": "timestamp"})
+                #
+                
+                dfs[symbol] = df
+    write('dfs', dfs)
 
     for symbol in symbols.union(stocks):
         MyFlask.app().logger.info("Checking freshness of data: " + symbol + " ...")
