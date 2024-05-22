@@ -485,7 +485,7 @@ def initialCheckOfData():
     
 threadInitialCheck = Thread(target = initialCheckOfData, args = ())
 threadInitialCheck.start()
-threadInitialCheck.join()
+#threadInitialCheck.join()
 
 
 
