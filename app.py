@@ -469,7 +469,7 @@ MyFlask.app().config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 MyFlask.app().logger.info("__name__:" + __name__)
 
 if __name__ != '__main__':
-    gunicorn_logger = logging.getLogger('gunicorn.error')
+    gunicorn_logger = logging.getLogger('gunicorn.info')
     MyFlask.app().logger.handlers = gunicorn_logger.handlers
     MyFlask.app().logger.setLevel(gunicorn_logger.level)
 
