@@ -56,9 +56,7 @@ from claudeTest import getSuggestion
 
 from MyFlask import MyFlask
 
-print('aa')
 app = MyFlask.app()
-print('bb')
 
 MyFlask.app().logger.info("starting ...")
 logging.info("starting LOGGING  ...")
@@ -66,7 +64,7 @@ logging.info("starting LOGGING  ...")
 from Util import read, write
 from Init import calculateCrossSections, getDataPath, pullNewData, symbolsAndStocks, symbols, stocks
 
-
+ 
 claudRecomendation = dict()
 
 '''

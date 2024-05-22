@@ -447,6 +447,7 @@ def initialCheckOfData():
                 MyFlask.app().logger.info(str(duration.days) + " days old data for " + symbol) 
                 pullNewData(symbol, start, dfs)    
     MyFlask.app().logger.info("Checking done.")
+    logging.info("Checking done.")
 
 
     '''
