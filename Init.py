@@ -67,10 +67,10 @@ if os.path.isfile("./authcreds.json"):
     MyFlask().app().logger.info(tickers)
     tickers_data=""    
 
-#symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT'}
-#stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
-symbols = {'BTCUSDT'}
-stocks = {'TSLA'}
+symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT'}
+stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK'}
+#symbols = {'BTCUSDT'}
+#stocks = {'TSLA'}
 
 
 symbolsAndStocks = symbols.union(stocks)
@@ -160,7 +160,7 @@ def getDataPath(symbol):
 def get_last_timestamp(symbol, dfs):
     ret = 0
     if not symbol in dfs.keys():
-        ret = dt.datetime(2024, 1, 1).timestamp()
+        ret = dt.datetime(2020, 1, 1).timestamp()
         #return int(dt.datetime(2024, 1, 1).timestamp()* 1000)
     else:
         ret = dfs.get(symbol).timestamp[-1:].values[0]
@@ -226,7 +226,6 @@ def pullNewData(symbol, start, dfs):
             if not latest.empty:
                 start = latest.timestamp[-1:].values[0]
                 start_str = dt.datetime.fromtimestamp(start).isoformat(sep="T", timespec="milliseconds")
-                print(start_str)
             else:
                 MyFlask.app().logger.warn("None received")
         
@@ -252,13 +251,6 @@ def pullNewData(symbol, start, dfs):
     
     if added:
         dfs[symbol].drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
-        #dfs[symbol] = dfs[symbol][~dfs[symbol].index.duplicated(keep='last')]
-
-        with pd.option_context('display.max_rows', None,
-                               'display.max_columns', None,
-                               'display.precision', 3,
-                               ):
-            print(dfs[symbol][['timestamp']].tail(10))
 
         quotes_list = [
             Quote(d,o,h,l,c,v) 
@@ -332,7 +324,6 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
 
 def calculateCrossSections(symbol, crteD):
     dfs = read('dfs')
-    global app
     
     MyFlask().app().logger.info("Calculating crossection...")
     krogci_x=[]
@@ -391,36 +382,27 @@ def calculateCrossSections(symbol, crteD):
 
 def repeatPullNewData():
     dfs = read('dfs')
-
-    print('last values')
-    print(dfs.get('BTCUSDT').timestamp[-1:].values[0])
-    print(dfs.get('TSLA').timestamp[-1:].values[0])    
-    
+    crteD = read('crteD')
     global currentHour
-    
     
     if currentHour==None or datetime.now().hour != currentHour:
         currentHour = datetime.now().hour
         MyFlask.app().logger.info("beep - hour changed: " + str(currentHour))
         try:
             for symbol in symbols.union(stocks):
-                #start = int(dt.datetime(2024, 1, 1).timestamp())
-                #start = int(dt.datetime(2024, 1, 1).timestamp()* 1000)
                 if symbol in dfs.keys():
                     claudRecomendation[symbol] = getSuggestion(dfs[symbol])
                     start = int(get_last_timestamp(symbol, dfs))
                     dt = datetime.fromtimestamp(start, pytz.utc)
                     
                     MyFlask.app().logger.info("Datetime of last entry: " + dt.strftime('%Y-%m-%d %H:%M:%S'))
-                    start1 = decimal.Decimal(str(start)) / decimal.Decimal('1000000000')
-                    start = int(start1)
                 else:
                     start = dt.datetime(2024, 1, 1).timestamp()
                     claudRecomendation[symbol] = ""
     
                 pullNewData(symbol, start, dfs)
                 
-                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol)
+                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD)
                 sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
             write('dfs', dfs)
         except:
@@ -505,13 +487,13 @@ def initialCheckOfData():
     
     write('crteD', crteD)
     
-    #currentHour = dt.datetime.now().hour
-    #thread = Thread(target = threaded_function, args = ())
-    #thread.start()
+    currentHour = dt.datetime.now().hour
+    thread = Thread(target = threaded_function, args = ())
+    thread.start()
     
 threadInitialCheck = Thread(target = initialCheckOfData, args = ())
 threadInitialCheck.start()
-#threadInitialCheck.join()
+threadInitialCheck.join()
 
 
 

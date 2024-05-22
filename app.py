@@ -59,7 +59,7 @@ from MyFlask import MyFlask
 
 app = MyFlask.app()
 from Util import read, write
-from Init import calculateCrossSections, getDataPath, pullNewData, symbolsAndStocks
+from Init import calculateCrossSections, getDataPath, pullNewData, symbolsAndStocks, symbols, stocks
 
 
 claudRecomendation = dict()
@@ -198,6 +198,8 @@ def getPlotData(symbol, dfs, crteD):
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
     howmany = 500
+    if symbol in symbols:
+        howmany = 2500
     
     
     
