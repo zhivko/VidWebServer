@@ -34,6 +34,7 @@ def write(myKey: str, mydictionary):
     #myDictionary_serialized = {key: value.to_json() for key, value in mydictionary.items()}
     #redis_client.hmset(myKey, myDictionary_serialized)
     redis_client.set(myKey, pickle.dumps(mydictionary))
+    MyFlask().app().logger.info("Wrote " + myKey + " to redis.")
 
 def delete(whichkey: str):
     if not redis_client.exists(whichkey):
