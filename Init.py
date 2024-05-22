@@ -481,10 +481,7 @@ def initialCheckOfData():
     thread = Thread(target = threaded_function, args = ())
     thread.start()
 
-MyFlask.app().logger.info("Start threadInitialCheck")    
-threadInitialCheck = Thread(target = initialCheckOfData, args = ())
-threadInitialCheck.start()
-#threadInitialCheck.join()
+
 
 
 

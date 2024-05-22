@@ -1,6 +1,8 @@
 import os
 import multiprocessing
-
+from MyFlask import MyFlask
+from Init import initialCheckOfData
+from threading import Thread
 
 # gunicorn.conf.py
 
@@ -31,4 +33,11 @@ reload = True  # Enable auto-reloading when code changes
 # Timeout
 timeout = 30  # Worker timeout in seconds
 
+
+def my_init_function(server, worker):
+    MyFlask.app().logger.info("Start threadInitialCheck")    
+    threadInitialCheck = Thread(target = initialCheckOfData, args = ())
+    threadInitialCheck.start()
+    #threadInitialCheck.join()
     
+post_fork = my_init_function
