@@ -447,7 +447,6 @@ def initialCheckOfData():
                 MyFlask.app().logger.info(str(duration.days) + " days old data for " + symbol) 
                 pullNewData(symbol, start, dfs)    
     MyFlask.app().logger.info("Checking done.")
-    logging.info("Checking done.")
 
 
     '''
@@ -463,7 +462,7 @@ def initialCheckOfData():
     '''
     
     # load crte
-    crteD = {}
+    crteD = { }
     for symbol in symbols.union(stocks):
         crtePath = getDataPath(symbol) + os.sep + "crte.data"
         MyFlask.app().logger.info(crtePath)
@@ -481,7 +480,8 @@ def initialCheckOfData():
     currentHour = dt.datetime.now().hour
     thread = Thread(target = threaded_function, args = ())
     thread.start()
-    
+
+MyFlask.app().logger.info("Start threadInitialCheck")    
 threadInitialCheck = Thread(target = initialCheckOfData, args = ())
 threadInitialCheck.start()
 #threadInitialCheck.join()
