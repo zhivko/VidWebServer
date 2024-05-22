@@ -5,7 +5,6 @@
 #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
 # test
 # https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
-
 from flask import current_app, Flask, redirect, render_template, request, send_from_directory
 from flask import abort
 from threading import Thread
@@ -461,17 +460,5 @@ def favicon():
     return send_from_directory(os.path.join(MyFlask.app().root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-#Debug(app)
-#app = Flask(__name__)
-#app.conf['DEBUG'] = True
-#threadInitialCheck.join()
-
-
-    
 if __name__ == '__main__':
-    MyFlask.app().config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-    gunicorn_logger = logging.getLogger('gunicorn.info')
-    MyFlask.app().logger.handlers = gunicorn_logger.handlers
-    MyFlask.app().logger.setLevel(gunicorn_logger.level)
-    MyFlask.app().logger.info("Starting MyFlask...")
     MyFlask.app().run(host = '127.0.0.1', port = '8000', debug=False)
