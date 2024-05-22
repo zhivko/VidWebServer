@@ -23,6 +23,8 @@ GUNICORN_PROCESSES = number_of_cores * 2 + 1
 workers = int(os.environ.get('GUNICORN_PROCESSES', GUNICORN_PROCESSES))  # Number of worker processes
 worker_class = 'sync'  # The type of worker (sync, gevent, eventlet, etc.)
 
+graceful_timeout=3
+
 # Reload on code changes
 reload = True  # Enable auto-reloading when code changes
 
