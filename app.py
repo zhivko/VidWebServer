@@ -230,8 +230,8 @@ def getPlotData(symbol, dfs, crteD):
             
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD)
     
-    dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-int(howmany/2)].timestamp)
-    dt2 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp)
+    dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=100)
+    dt2 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) + timedelta(days=30)
 
     r_s = dt1.strftime("%Y-%m-%d %H:%M:%S");
     r_e = dt2.strftime("%Y-%m-%d %H:%M:%S");
