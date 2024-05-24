@@ -3,6 +3,7 @@ import multiprocessing
 from MyFlask import MyFlask
 from Init import initialCheckOfData
 from threading import Thread
+import logging
 
 # gunicorn.conf.py
 
@@ -35,13 +36,18 @@ timeout = 30  # Worker timeout in seconds
 
 alreadyStarted = False
 
+logger = logging.getLogger(__name__)
+
 def my_init_function():
     global alreadyStarted
     if not alreadyStarted:
-        MyFlask.app().logger.info("Start threadInitialCheck")    
-        threadInitialCheck = Thread(target = initialCheckOfData, args = ())
-        threadInitialCheck.start()
-        alreadyStarted = True
+        try:
+            alreadyStarted = True
+            MyFlask.app().logger.info("Start threadInitialCheck")    
+            threadInitialCheck = Thread(target = initialCheckOfData, args = ())
+            threadInitialCheck.start()
+        except Exception as e:
+            logger.exception("An exception occurred: %s", str(e))        
         #threadInitialCheck.join()
     else:
         MyFlask.app().logger.info("initialCheckOfData already started....")
