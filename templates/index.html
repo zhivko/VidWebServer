@@ -11,14 +11,17 @@
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <div id="plot_div" style="width: 95%; height: 100%; position: relative; float: left; z-index:1000"></div>
-<div id="lines_div" style="width: 180px; float: right; position: absolute; z-index:1001; top: 65%; right: 2%;">
-	<select name="list_box_crte" id="list_box_crte" size="8" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);"></select>
-</div>
-<div id="pairs_div" style="width: 180px; float: right; position: absolute; z-index:1001; top: 45%; right: 2%;">
+
+<div id="pairs_div" style="width: 180px; float: right; position: absolute; z-index:1002; top: 55%; right: 2%;">
 	<select id="list_box_pairs" name="list_box_pairs" size="8" onchange="myPairChangeEvent();">
 	{{ webpage_data.tickers_data }}
 	</select>
 </div>
+
+<div id="lines_div" style="width: 180px; float: right; position: absolute; z-index:1001; top: 75%; right: 2%;">
+	<select name="list_box_crte" id="list_box_crte" size="8" onchange="myCrteChangeEvent();" onkeydown="listboxKeyDown(event);"></select>
+</div>
+
 <div id="info" style="width: 180px; float: right; position: absolute; z-index:1001; top: 15%; right: 2%;">
 	<span style="font-family: 'Helvetica', 'Arial', sans-serif; font-size: 20px; color:blue"><strong>{{ webpage_data.price }}$</strong></span><br>
 	<span style="font-family: 'Helvetica', 'Arial', sans-serif; font-size: 20px; color:blue"><strong>{{ webpage_data.datetime }}</strong></span><br>

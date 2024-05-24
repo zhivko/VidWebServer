@@ -473,7 +473,7 @@ def favicon():
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 if __name__ == '__main__':
-    #MyFlask.app().logger.info("Start threadInitialCheck")    
-    #threadInitialCheck = Thread(target = initialCheckOfData, args = ())
-    #threadInitialCheck.start()
+    MyFlask.app().logger.info("Start threadInitialCheck")    
+    threadInitialCheck = Thread(target = initialCheckOfData, args = ())
+    threadInitialCheck.start()
     MyFlask.app().run(host = '127.0.0.1', port = '8000', debug=False)

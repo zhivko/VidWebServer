@@ -53,6 +53,7 @@ def getSuggestion(price_data):
     high_prices = price_data.iloc[::-1].loc[:,"high"]
     low_prices = price_data.iloc[::-1].loc[:,"low"]
     timestamps = price_data.iloc[::-1].loc[:,"timestamp"]
+    datetimes = price_data.iloc[::-1].index
     
     # Calculate indicators
     rsi = calculate_rsi(close_prices)
@@ -72,7 +73,7 @@ def getSuggestion(price_data):
     #date_time = datetime.datetime.fromtimestamp(timestamps.iloc[0]/1000).strftime("%d.%m.%Y %H:%M:%S")
     
     #ljubljana_tz = pytz.timezone('Europe/Ljubljana')
-    local_time = timestamps.iloc[0]
+    local_time = datetimes[0]
     
     explanation = f"RSI: {rsi:.2f}<br>"
     explanation += f"MACD: {macd:.2f}<br>"
