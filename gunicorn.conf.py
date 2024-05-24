@@ -43,6 +43,8 @@ def my_init_function():
         threadInitialCheck.start()
         alreadyStarted = True
         #threadInitialCheck.join()
+    else:
+        MyFlask.app().logger.info("initialCheckOfData already started....")
     
 def pre_fork(server, worker):
     # Call your custom method before each worker process is forked
