@@ -432,9 +432,6 @@ def initialCheckOfData():
                 dfs[symbol] = df
                 MyFlask.app().logger.info("initialCheckOfData for: " + symbol + "--3")                
     
-    MyFlask.app().logger.info("writing dfs data")                
-    write('dfs', dfs)
-
     for symbol in symbols.union(stocks):
         MyFlask.app().logger.info("Checking freshness of data: " + symbol + " ...")
         start = get_last_timestamp(symbol, dfs)
@@ -451,6 +448,9 @@ def initialCheckOfData():
                 MyFlask.app().logger.info(str(duration.days) + " days old data for " + symbol) 
                 pullNewData(symbol, start, dfs)    
     MyFlask.app().logger.info("Checking done.")
+
+    MyFlask.app().logger.info("writing dfs data")                
+    write('dfs', dfs)
 
 
     '''
