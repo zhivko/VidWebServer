@@ -433,6 +433,7 @@ def initialCheckOfData():
                 #
                 
                 dfs[symbol] = df
+    MyFlask.app().logger.info("writing dfs data")                
     write('dfs', dfs)
 
     for symbol in symbols.union(stocks):
