@@ -430,6 +430,8 @@ def initialCheckOfData():
                 MyFlask.app().logger.info("initialCheckOfData for: " + symbol + "--2")                
                 
                 dfs[symbol] = df
+                MyFlask.app().logger.info("initialCheckOfData for: " + symbol + "--3")                
+    
     MyFlask.app().logger.info("writing dfs data")                
     write('dfs', dfs)
 
