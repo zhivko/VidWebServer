@@ -13,7 +13,7 @@ class MyFlask(object):
     def app(cls):
         if cls._app is None:
             cls._app = Flask(__name__, static_folder='./static', template_folder='./templates')
-            handler = logging.FileHandler("./log/alog.log")      # Create the file logger
+            handler = logging.FileHandler("./log/log.log")      # Create the file logger
             cls._app.logger.addHandler(handler)                 # Add it to the built-in logger
             cls._app.logger.setLevel(logging.DEBUG)             # Set the log level to debug
             cls._app.config['LOG_LEVEL'] = 'DEBUG'
