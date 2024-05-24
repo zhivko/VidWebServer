@@ -421,11 +421,13 @@ def initialCheckOfData():
             if os.path.isfile(dataPath):
                 MyFlask.app().logger.info("initialCheckOfData for: " + symbol)                
                 df = pd.read_csv(dataPath, dtype={'timestamp': float}, thousands=',', decimal='.')
+                MyFlask.app().logger.info("initialCheckOfData for: " + symbol + "--1")                
                 
                 f = lambda x: pd.Timestamp(x)
                 df.index = pd.to_datetime(df['datetime'], utc=True, format='ISO8601')
                 df.index.names = ['datetime'] 
                 df.drop(['datetime'], axis=1, inplace=True)
+                MyFlask.app().logger.info("initialCheckOfData for: " + symbol + "--2")                
                 
                 #df = df.rename(columns={"timestamp.1": "timestamp"})
                 #
