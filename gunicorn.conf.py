@@ -40,4 +40,4 @@ def my_init_function(server, worker):
     threadInitialCheck.start()
     #threadInitialCheck.join()
     
-post_fork = my_init_function
+on_starting = my_init_function
