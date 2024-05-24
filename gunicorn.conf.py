@@ -46,9 +46,9 @@ def my_init_function():
             MyFlask.app().logger.info("Start threadInitialCheck")    
             threadInitialCheck = Thread(target = initialCheckOfData, args = ())
             threadInitialCheck.start()
+            threadInitialCheck.join()
         except Exception as e:
             logger.exception("An exception occurred: %s", str(e))        
-        #threadInitialCheck.join()
     else:
         MyFlask.app().logger.info("initialCheckOfData already started....")
     

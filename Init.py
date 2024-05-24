@@ -429,9 +429,6 @@ def initialCheckOfData():
                 df.drop(['datetime'], axis=1, inplace=True)
                 MyFlask.app().logger.info("initialCheckOfData for: " + symbol + "--2")                
                 
-                #df = df.rename(columns={"timestamp.1": "timestamp"})
-                #
-                
                 dfs[symbol] = df
     MyFlask.app().logger.info("writing dfs data")                
     write('dfs', dfs)
