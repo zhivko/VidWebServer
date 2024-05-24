@@ -34,10 +34,12 @@ reload = True  # Enable auto-reloading when code changes
 timeout = 30  # Worker timeout in seconds
 
 
-def my_init_function(server):
+def my_init_function():
     MyFlask.app().logger.info("Start threadInitialCheck")    
     threadInitialCheck = Thread(target = initialCheckOfData, args = ())
     threadInitialCheck.start()
     #threadInitialCheck.join()
     
-on_starting = my_init_function
+def on_starting(server):
+    # Call your custom method before worker processes are forked
+    my_init_function()
