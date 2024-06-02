@@ -74,6 +74,7 @@ from Init import calculateCrossSections, getDataPath, pullNewData, symbolsAndSto
 
  
 claudRecomendation = dict()
+thread2 = None
 
 '''
 message = MIMEMultipart("alternative")
@@ -208,10 +209,9 @@ def getPlotData(symbol, dfs, crteD):
     #df['time'] = df['timestamp'].apply(f)
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
-    howmany = 500
+    howmany = 1000
     if symbol in symbols:
         howmany = 2500
-    
     
     
     x = dfs[symbol].tail(howmany).index.astype('str').tolist()
@@ -230,7 +230,11 @@ def getPlotData(symbol, dfs, crteD):
             
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD)
     
-    dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=100)
+    if symbol in symbols:
+        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=200)
+    elif symbol in stocks:
+        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=400)
+    
     dt2 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) + timedelta(days=30)
 
     r_s = dt1.strftime("%Y-%m-%d %H:%M:%S");
@@ -403,7 +407,8 @@ def page_not_found(error):
 '''
 
 def threaded_function2(symbol, start):
-    pullNewData(symbol, start)
+    dfs=read('dfs')
+    pullNewData(symbol, start, dfs)
 
 
 
@@ -422,7 +427,7 @@ def index():
     MyFlask().app().logger.info("loading took: " + str((dt2-dt1).total_seconds()) + "s.")
 
 
-    thread2 = read('thread2')
+    global thread2
     
     
     
@@ -438,7 +443,6 @@ def index():
         else:
             thread2 = Thread(target = threaded_function2, args = (symbol, start))
             thread2.start()
-            write('thread2', thread2)
             return "Thread for collecting data has been started... Try later..."
     '''   
     else:
@@ -476,4 +480,4 @@ if __name__ == '__main__':
     MyFlask.app().logger.info("Start threadInitialCheck")    
     threadInitialCheck = Thread(target = initialCheckOfData, args = ())
     threadInitialCheck.start()
-    MyFlask.app().run(host = '127.0.0.1', port = '8000', debug=False)
+    MyFlask.app().run(host = '127.0.0.1', port = '8000', debug=True, threaded=False)
