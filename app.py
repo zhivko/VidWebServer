@@ -209,7 +209,7 @@ def getPlotData(symbol, dfs, crteD):
     #df['time'] = df['timestamp'].apply(f)
     #x = df['time'].apply(lambda x: int(x)).tolist()
     #x = df['timestamp'].index.astype("str").tolist()
-    howmany = 1000
+    howmany = 2000
     if symbol in symbols:
         howmany = 2500
     
