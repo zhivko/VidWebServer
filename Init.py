@@ -152,7 +152,7 @@ def getDataPath(symbol):
     path = pathlib.Path("." + os.sep + symbol).resolve()
     if not (os.path.isdir(path)):
         os.mkdir(path, mode = 0o777)
-        app.logger.info("Directory '% s' created" % path)
+        MyFlask().app().logger.info("Directory '% s' created" % path)
     return os.path.realpath(path);
     
 def get_last_timestamp(symbol, dfs):

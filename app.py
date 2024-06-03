@@ -460,8 +460,14 @@ def index():
     plot_data1 = getPlotData(symbol, dfs, crteD)
     
     tickers_data = " "
-    for symb in symbolsAndStocks:
+    for symb in sorted(symbols):
         tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
+
+    tickers_data = tickers_data + '<option value="-">------------------</option>'    
+
+    for symb in sorted(stocks):
+        tickers_data = tickers_data + '<option value="'+symb+'">'+symb+'</option>'    
+
     
     claudRecomendation[symbol] = getSuggestion(dfs[symbol])
     if claudRecomendation[symbol] != None and len(claudRecomendation[symbol])>0:
