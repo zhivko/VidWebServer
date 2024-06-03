@@ -65,7 +65,7 @@ if os.path.isfile("./authcreds.json"):
     logging.info(tickers)
     tickers_data=""    
 
-symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT', 'SUIUSDT', 'BNBUSDT' }
+symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT', 'SUIUSDT', 'BNBUSDT', 'LINKUSDT' }
 stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK', 'NVDA', 'GOOG', 'AMZN'}
 #symbols = {'BTCUSDT'}
 #stocks = {'TSLA'}
