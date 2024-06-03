@@ -407,8 +407,10 @@ def page_not_found(error):
 '''
 
 def threaded_function2(symbol, start):
+    global thread2
     dfs=read('dfs')
     pullNewData(symbol, start, dfs)
+    thread2 = None
 
 
 
