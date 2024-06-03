@@ -211,7 +211,7 @@ def getPlotData(symbol, dfs, crteD):
     #x = df['timestamp'].index.astype("str").tolist()
     howmany = 1000
     if symbol in symbols:
-        howmany = 2500
+        howmany = 1000
     
     
     x = dfs[symbol].tail(howmany).index.astype('str').tolist()
