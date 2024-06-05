@@ -328,7 +328,7 @@ def calculateCrossSections(symbol, crteD, dfs):
     krogci_radius=[]
     precision = 1e-15
     
-    if not symbol in dfs.keys:
+    if not symbol in dfs.keys():
         MyFlask().app().logger.info("Symbol: %s not in dfs.", symbol)
         return
     
