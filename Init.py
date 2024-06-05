@@ -321,7 +321,7 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
 
 
 
-def calculateCrossSections(symbol, crteD, dfs):
+def calculateCrossSections(symbol, crteD, dfs, howMany=50):
     logging.info("Calculating crossection...")
     krogci_x=[]
     krogci_y=[]
@@ -332,7 +332,7 @@ def calculateCrossSections(symbol, crteD, dfs):
         MyFlask().app().logger.info("Symbol: %s not in dfs.", symbol)
         return
     
-    for index, row in dfs[symbol].tail(50).iterrows():
+    for index, row in dfs[symbol].tail(howMany).iterrows():
         loc = dfs[symbol].index.get_loc(row.name)
         try:
             
@@ -411,7 +411,7 @@ def repeatPullNewData():
                         MyFlask.app().logger.info(str(duration.days) + " days old data for " + symbol) 
                         pullNewData(symbol, start, dfs)    
     
-                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD, dfs)
+                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD, dfs, 1)
                 sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
             write('dfs', dfs)
         except:
