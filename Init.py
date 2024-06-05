@@ -66,7 +66,7 @@ if os.path.isfile("./authcreds.json"):
     tickers_data=""    
 
 symbols = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'MKRUSDT', 'JUPUSDT', 'RNDRUSDT', 'DOGEUSDT', 'HNTUSDT', 'BCHUSDT', 'TONUSDT', 'SUIUSDT', 'BNBUSDT', 'LINKUSDT' }
-stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK', 'NVDA', 'GOOG', 'AMZN'}
+stocks = {'TSLA', 'MSTR', 'GC=F', 'CLSK', 'NVDA', 'GOOG', 'AMZN', 'SRUUF'}
 #symbols = {'BTCUSDT'}
 #stocks = {'TSLA'}
 
@@ -188,8 +188,9 @@ def pullNewData(symbol, start, dfs):
         
 
         if symbol in stocks:
-            if start==1230764400:
+            if start==1577833200:
                 start = int(dt.datetime(2020, 1, 1).timestamp())
+                start = 0
             stock = yahooFinance.Ticker(symbol)
             startFrom = dt.datetime.fromtimestamp(start).strftime("%Y-%m-%d")
             endFromDt = dt.datetime.fromtimestamp(start) + timedelta(days=350)
@@ -320,9 +321,7 @@ def sendMailForLastCrossSections(symbol, krogci_x, krogci_y):
 
 
 
-def calculateCrossSections(symbol, crteD):
-    dfs = read('dfs')
-    
+def calculateCrossSections(symbol, crteD, dfs):
     logging.info("Calculating crossection...")
     krogci_x=[]
     krogci_y=[]
@@ -391,12 +390,23 @@ def repeatPullNewData():
         try:
             for symbol in symbols.union(stocks):
                 start = int(get_last_timestamp(symbol, dfs))
-                dt = datetime.fromtimestamp(start, pytz.utc)
-                MyFlask.app().logger.info("Datetime of last entry for " + symbol + " : " + dt.strftime('%Y-%m-%d %H:%M:%S'))
+                last_dt = datetime.fromtimestamp(start, pytz.utc)
+                last_dt = last_dt.replace(tzinfo=pytz.utc)
+                MyFlask.app().logger.info("Datetime of last entry for " + symbol + " : " + last_dt.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+                if symbol in symbols:
+                    duration = (datetime.utcnow().replace(tzinfo=pytz.utc) - last_dt).total_seconds() / 3600
+                    if duration > 1:
+                        MyFlask.app().logger.info(str(duration) + " hours old data for " + symbol) 
+                        pullNewData(symbol, start, dfs)    
+                elif symbol in stocks:
+                    duration = datetime.utcnow().replace(tzinfo=pytz.utc) - last_dt
+                    if duration.days > 1:
+                        MyFlask.app().logger.info(str(duration.days) + " days old data for " + symbol) 
+                        pullNewData(symbol, start, dfs)    
     
-                pullNewData(symbol, start, dfs)
-                
-                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD)
+                krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD, dfs)
                 sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
             write('dfs', dfs)
         except:
@@ -436,14 +446,15 @@ def initialCheckOfData():
         MyFlask.app().logger.info("Checking freshness of data: " + symbol + " ...")
         start = get_last_timestamp(symbol, dfs)
         last_dt = datetime.fromtimestamp(start)
+        last_dt = last_dt.replace(tzinfo=pytz.utc)
         duration = 0
         if symbol in symbols:
-            duration = (datetime.now() - last_dt).total_seconds() / 3600
+            duration = (datetime.utcnow().replace(tzinfo=pytz.utc) - last_dt).total_seconds() / 3600
             if duration > 1:
                 MyFlask.app().logger.info(str(duration) + " hours old data for " + symbol) 
                 pullNewData(symbol, start, dfs)    
         elif symbol in stocks:
-            duration = datetime.now() - last_dt
+            duration = datetime.utcnow().replace(tzinfo=pytz.utc) - last_dt
             if duration.days > 1:
                 MyFlask.app().logger.info(str(duration.days) + " days old data for " + symbol) 
                 pullNewData(symbol, start, dfs)    
