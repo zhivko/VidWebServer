@@ -269,6 +269,7 @@ def pullNewData(symbol, start, dfs):
         dfs[symbol] = dfs[symbol].fillna(0)
         
         dfs.get(symbol).to_csv(dataPath)
+        write('dfs', dfs)
 
 # try load data
 #crte = Crta[]
@@ -413,7 +414,7 @@ def repeatPullNewData():
     
                 krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD, dfs, 1)
                 sendMailForLastCrossSections(symbol, krogci_x, krogci_y)
-            write('dfs', dfs)
+            
         except:
             MyFlask.app().logger.error('Something went wrong retrieving data')
             MyFlask.app().logger.error(traceback.format_exc())
