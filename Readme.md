@@ -99,18 +99,20 @@ paste following:
 ```
 [Unit]
 Description=My Gunicorn project description
-After=network.target
+After=network-online.target
+Wants=network-online.target
+Requires=redis-server.service
 
 [Service]
 User=klemen
 Group=www-data
 WorkingDirectory=/home/klemen/git/VidWebServer
+#ExecStart=/usr/bin/gunicorn --bind 127.0.0.1:8000 app:app --access-logfile ./log/access.log --error-logfil>
 ExecStart=/usr/bin/gunicorn --config gunicorn.conf.py app:app
+TimeoutStopSec=2s
 
 [Install]
 WantedBy=multi-user.target
-After=network-online.target
-Wants=network-online.target
 ```
 
 Restart daemon with:
