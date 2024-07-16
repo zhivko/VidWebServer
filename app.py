@@ -231,9 +231,9 @@ def getPlotData(symbol, dfs, crteD):
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD, dfs)
     
     if symbol in symbols:
-        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=200)
+        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=350)
     elif symbol in stocks:
-        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=400)
+        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=600)
     
     dt2 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) + timedelta(days=30)
 

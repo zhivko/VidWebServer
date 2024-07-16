@@ -36,7 +36,8 @@ function myPairChangeEvent()
 {
 	var pair = document.getElementsByName('list_box_pairs')[0].value;
 	var host = window.location.protocol + "//" + window.location.host;
-	window.location.href = host+"/index.html?pair="+pair;
+	var encodedPair = encodeURIComponent(pair);
+	window.location.href = host+"/index.html?pair="+encodedPair;
 }
 
 function listboxKeyDown(e)
