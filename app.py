@@ -235,6 +235,9 @@ def getPlotData(symbol, dfs, crteD):
     elif symbol in stocks:
         dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=600)
     
+    
+    dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=1200)
+    
     dt2 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) + timedelta(days=30)
 
     r_s = dt1.strftime("%Y-%m-%d %H:%M:%S");
