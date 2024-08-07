@@ -102,13 +102,6 @@ def obv(data):
 
 
 
-    
-
-
-
-
-
-
 
 #response = session.get_kline(category='linear', 
 #                             symbol=mysymbol, 
@@ -230,19 +223,23 @@ def getPlotData(symbol, dfs, crteD):
             
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD, dfs)
     
-    if symbol in symbols:
-        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=350)
-    elif symbol in stocks:
-        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=600)
+#    if symbol in symbols:
+#        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=350)
+#    elif symbol in stocks:
+#        dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=600)
     
     
-    dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=1200)
-    
+    dt1 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) - timedelta(days=4*30)
     dt2 = datetime.utcfromtimestamp(dfs[symbol].iloc[-1].timestamp) + timedelta(days=30)
 
     r_s = dt1.strftime("%Y-%m-%d %H:%M:%S");
     r_e = dt2.strftime("%Y-%m-%d %H:%M:%S");
     
+    print("howmany: ", howmany)
+    print("dt1: ", r_s)
+    print("dt2: ", r_e)
+    print("x_first: ", x[0])
+    print("x_last: ", x[-1])
 
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume, 'lines': lines, 
             'ind1_sto': ind1,
@@ -304,6 +301,9 @@ def scroll():
     #xaxis1_ = xaxis1_.strftime('%Y-%m-%d %H:00:00')
     
     MyFlask().app().logger.info("In scroll, symbol: %s", symbol)
+    MyFlask().app().logger.info("x0: %s", xaxis0_)
+    MyFlask().app().logger.info("x1: %s", xaxis1_)
+
     xaxis0_ = xaxis0_.replace(tzinfo=pytz.UTC)
     xaxis1_ = xaxis1_.replace(tzinfo=pytz.UTC)
     
@@ -321,8 +321,13 @@ def scroll():
     
     krogci_x, krogci_y, krogci_radius = calculateCrossSections(symbol, crteD, dfs)
     
+    r_s = xaxis0_.strftime("%Y-%m-%d %H:%M:%S");
+    r_e = xaxis1_.strftime("%Y-%m-%d %H:%M:%S");    
+    
     return {'x_axis': x, 'open': open_, 'high': high, 'low': low, 'close': close, 'volume': volume,'lines': lines, 'title': symbol, 
             'krogci_x': krogci_x, 'krogci_y': krogci_y, 'krogci_radius': krogci_radius,
+            'range_start': r_s,
+            'range_end': r_e            
            }, 200
     
 
